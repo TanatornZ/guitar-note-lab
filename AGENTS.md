@@ -12,10 +12,12 @@
 - `npm install` — install dependencies
 - `npm run dev` — start the Vite development server
 - `npm run check` — run the strict TypeScript check
+- `npm test` — run the Vitest unit test suite
+- `npm run coverage` — run tests with the enforced 80% line-coverage threshold
 - `npm run build` — create the deployable site in `dist/`
 - `npm run preview` — serve the production build locally
 
-Before handing off a change, run both `npm run check` and `npm run build`.
+Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`, and `npm run build`.
 
 ## Project layout
 
