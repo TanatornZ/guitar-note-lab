@@ -1,0 +1,8 @@
+Acoustic guitar recordings from tonejs-instruments by N. P. Brosowsky.
+https://github.com/nbrosowsky/tonejs-instruments
+Original source credited by the library: University of Iowa Musical Instrument Samples.
+http://theremin.music.uiowa.edu/
+Samples licensed under Creative Commons Attribution 3.0 Unported:
+https://creativecommons.org/licenses/by/3.0/
+MP3 files are redistributed unchanged. Playback may transpose them by a few
+semitones and adjust volume, fade, and timing to produce notes and strums.
