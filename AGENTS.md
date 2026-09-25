@@ -4,6 +4,7 @@
 
 - React + TypeScript, built with Vite
 - Tailwind CSS v4 through `@tailwindcss/vite`
+- MUI for the searchable chord autocomplete control
 - Browser Web Audio API with recorded guitar samples
 
 ## Commands
@@ -32,6 +33,7 @@ Before handing off a change, run both `npm run check` and `npm run build`.
 ## UI and state conventions
 
 - Use Tailwind utility classes for UI styling. Keep `src/styles.css` limited to Tailwind setup, theme tokens, and external font imports.
+- Use MUI `Autocomplete` for the Strum Studio chord picker; keep its `sx` styling aligned with the existing dark theme.
 - Preserve the existing dark Chord Canvas design: layered navy background, amber highlights, wood fretboard, and responsive two-column layout from 900px up.
 - Keep musical notes as pitch classes (`0`–`11`) and use `noteName()` for display.
 - A selected pitch class highlights every matching note on the neck.
