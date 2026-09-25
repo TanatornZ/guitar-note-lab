@@ -114,15 +114,16 @@
     const name = i => notes[(i + 120) % 12];
     function pluck(midi, delay=0, velocity=.72) {
       const AudioCtx=window.AudioContext||window.webkitAudioContext; audioContext ||= new AudioCtx(); const ctx=audioContext; if(ctx.state==='suspended') ctx.resume();
-      if(!audioMaster) { audioMaster=ctx.createDynamicsCompressor(); audioMaster.threshold.value=-18; audioMaster.knee.value=14; audioMaster.ratio.value=7; audioMaster.attack.value=.004; audioMaster.release.value=.22; audioMaster.connect(ctx.destination); }
-      const now=ctx.currentTime+delay, frequency=440*Math.pow(2,(midi-69)/12), excitationLength=Math.max(2,Math.floor(ctx.sampleRate*.027));
-      const noise=ctx.createBuffer(1,excitationLength,ctx.sampleRate), samples=noise.getChannelData(0); for(let i=0;i<samples.length;i++) { const fade=1-i/samples.length; samples[i]=(Math.random()*2-1)*fade*fade; }
-      const source=ctx.createBufferSource(), excite=ctx.createBiquadFilter(), stringDelay=ctx.createDelay(), damping=ctx.createBiquadFilter(), feedback=ctx.createGain(), body=ctx.createBiquadFilter(), output=ctx.createGain(), pickFilter=ctx.createBiquadFilter(), pickGain=ctx.createGain();
-      source.buffer=noise; excite.type='lowpass'; excite.frequency.value=Math.min(8000,frequency*20); excite.Q.value=.45; stringDelay.delayTime.value=1/frequency;
-      damping.type='lowpass'; damping.frequency.value=Math.min(5400,Math.max(1300,frequency*13)); damping.Q.value=.6; feedback.gain.value=Math.max(.93,.982-frequency/26000);
-      body.type='peaking'; body.frequency.value=170; body.Q.value=.85; body.gain.value=4.5; output.gain.setValueAtTime(.0001,now); output.gain.exponentialRampToValueAtTime(.17*velocity,now+.008); output.gain.exponentialRampToValueAtTime(.0001,now+3.4);
-      pickFilter.type='highpass'; pickFilter.frequency.value=2100; pickGain.gain.setValueAtTime(.055*velocity,now); pickGain.gain.exponentialRampToValueAtTime(.0001,now+.045);
-      source.connect(excite); excite.connect(stringDelay); stringDelay.connect(damping); damping.connect(feedback); feedback.connect(stringDelay); damping.connect(body); body.connect(output); output.connect(audioMaster); source.connect(pickFilter); pickFilter.connect(pickGain); pickGain.connect(audioMaster); source.start(now); source.stop(now+.03);
+      if(!audioMaster) { audioMaster=ctx.createDynamicsCompressor(); audioMaster.threshold.value=-17; audioMaster.knee.value=15; audioMaster.ratio.value=6; audioMaster.attack.value=.004; audioMaster.release.value=.2; audioMaster.connect(ctx.destination); }
+      const now=ctx.currentTime+delay, frequency=440*Math.pow(2,(midi-69)/12), noise=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.03),ctx.sampleRate), samples=noise.getChannelData(0);
+      for(let i=0;i<samples.length;i++) { const fade=1-i/samples.length; samples[i]=(Math.random()*2-1)*fade*fade; }
+      const fundamental=ctx.createOscillator(), harmonic=ctx.createOscillator(), fundGain=ctx.createGain(), harmonicGain=ctx.createGain(), body=ctx.createBiquadFilter(), brightness=ctx.createBiquadFilter(), pick=ctx.createBufferSource(), pickFilter=ctx.createBiquadFilter(), pickGain=ctx.createGain();
+      fundamental.type='triangle'; fundamental.frequency.value=frequency; fundamental.detune.value=(Math.random()-.5)*2.2; harmonic.type='sine'; harmonic.frequency.value=frequency*2; harmonic.detune.value=(Math.random()-.5)*3.5;
+      fundGain.gain.setValueAtTime(.0001,now); fundGain.gain.exponentialRampToValueAtTime(.17*velocity,now+.009); fundGain.gain.exponentialRampToValueAtTime(.038*velocity,now+.18); fundGain.gain.exponentialRampToValueAtTime(.0001,now+1.65);
+      harmonicGain.gain.setValueAtTime(.0001,now); harmonicGain.gain.exponentialRampToValueAtTime(.055*velocity,now+.006); harmonicGain.gain.exponentialRampToValueAtTime(.0001,now+.62);
+      body.type='peaking'; body.frequency.value=185; body.Q.value=.8; body.gain.value=4; brightness.type='lowpass'; brightness.frequency.value=Math.min(4400,Math.max(1900,frequency*11)); brightness.Q.value=.35;
+      pick.buffer=noise; pickFilter.type='highpass'; pickFilter.frequency.value=1800; pickGain.gain.setValueAtTime(.042*velocity,now); pickGain.gain.exponentialRampToValueAtTime(.0001,now+.04);
+      fundamental.connect(fundGain); harmonic.connect(harmonicGain); fundGain.connect(body); harmonicGain.connect(body); body.connect(brightness); brightness.connect(audioMaster); pick.connect(pickFilter); pickFilter.connect(pickGain); pickGain.connect(audioMaster); fundamental.start(now); harmonic.start(now); pick.start(now); pick.stop(now+.031); fundamental.stop(now+1.7); harmonic.stop(now+.66);
     }
     function playSelectedChord() { let previous=47; [...selected].sort((a,b)=>a-b).forEach((pitch,index)=>{let midi=48+pitch; while(midi<=previous) midi+=12; previous=midi; pluck(midi,index*.055,.64);}); }
     function toggle(pitch, midi) {
