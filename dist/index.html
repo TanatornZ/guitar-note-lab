@@ -119,7 +119,11 @@
       source.connect(delayNode); delayNode.connect(tone); tone.connect(feedback); feedback.connect(delayNode); tone.connect(output); output.connect(ctx.destination); source.start(now); source.stop(now+.05);
     }
     function playSelectedChord() { let previous=47; [...selected].sort((a,b)=>a-b).forEach((pitch,index)=>{let midi=48+pitch; while(midi<=previous) midi+=12; previous=midi; pluck(midi,index*.055,.64);}); }
-    function toggle(pitch, midi) { selected.has(pitch) ? selected.delete(pitch) : selected.add(pitch); if (midi !== undefined) play(midi); render(); }
+    function toggle(pitch, midi) {
+      selected.has(pitch) ? selected.delete(pitch) : selected.add(pitch);
+      render();
+      if (midi !== undefined) { try { pluck(midi); } catch (error) { console.warn('Audio playback is unavailable.', error); } }
+    }
     function renderBoard() {
       board.innerHTML=''; picker.innerHTML=''; const displayStrings=reversed?[...guitarStrings].reverse():guitarStrings;
       displayStrings.forEach(string => { const label=document.createElement('div'); label.className='string-name'; label.textContent=string.name; board.append(label); for(let fret=1; fret<=12; fret++) { const midi=string.midi+fret, pitch=midi%12; const btn=document.createElement('button'); btn.type='button'; btn.className='fret'; btn.dataset.pitch=pitch; btn.setAttribute('aria-label',`${string.name} string, fret ${fret}, ${name(pitch)}`); btn.innerHTML=`<span class="dot">${name(pitch)}</span>`; btn.addEventListener('click',()=>toggle(pitch,midi)); board.append(btn); } });
