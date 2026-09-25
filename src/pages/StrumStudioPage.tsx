@@ -32,6 +32,7 @@ function nextDirection(direction: StrumDirection): StrumDirection {
 
 export function StrumStudioPage() {
   const [progression, setProgression] = useState<StrumChord[]>([STRUM_CHORDS[0], STRUM_CHORDS[1], STRUM_CHORDS[2], STRUM_CHORDS[3]])
+  const [selectedChordId, setSelectedChordId] = useState(STRUM_CHORDS[0].id)
   const [signature, setSignature] = useState(TIME_SIGNATURES[2])
   const [bpm, setBpm] = useState(96)
   const [pattern, setPattern] = useState<StrumDirection[]>(defaultPattern(TIME_SIGNATURES[2].beats))
@@ -46,6 +47,7 @@ export function StrumStudioPage() {
   const chordRef = useRef(0)
 
   if (!audio.current) audio.current = new GuitarAudio(setAudioStatus)
+  const selectedChord = STRUM_CHORDS.find((chord) => chord.id === selectedChordId) ?? STRUM_CHORDS[0]
 
   const tick = useCallback(() => {
     if (!progression.length) return
@@ -139,8 +141,12 @@ export function StrumStudioPage() {
         <div className="space-y-[18px]">
           <section className="rounded-[22px] border border-[#314267] bg-[linear-gradient(145deg,#18233eeb,#111a2eee)] p-5 shadow-[0_24px_50px_#02050f55] sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-4"><div><div className="font-mono text-xs font-medium tracking-[.11em] text-[#f2ae49] uppercase">1 · Chord sequence</div><h2 className="mt-2 text-lg font-bold">Your progression</h2></div><button className="cursor-pointer text-sm text-[#aeb9d2] hover:text-white" onClick={() => setProgression([])}>Clear sequence</button></div>
-            <p className="mt-2 text-sm text-[#aeb9d2]">Add chords in order. Each chord lasts one bar before the progression loops.</p>
-            <div className="mt-4 flex flex-wrap gap-2">{STRUM_CHORDS.map((chord) => <button key={chord.id} className="cursor-pointer rounded-xl border border-[#2b3a5c] bg-[#0e172a] px-3 py-2 font-mono text-sm text-[#d8e0f4] transition hover:border-[#f2ae49] hover:text-[#f2ae49]" onClick={() => setProgression((items) => [...items, chord])}>+ {chord.name}</button>)}</div>
+            <p className="mt-2 text-sm text-[#aeb9d2]">Choose a chord from the list, then add it to your sequence. Each chord lasts one bar before the progression loops.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <label className="sr-only" htmlFor="chord-picker">Chord to add</label>
+              <select id="chord-picker" value={selectedChordId} onChange={(event) => setSelectedChordId(event.target.value)} className="w-full cursor-pointer rounded-xl border border-[#435377] bg-[#0e172a] px-3 py-3 font-mono text-sm text-[#eff3ff] outline-none focus:border-[#f2ae49]">{STRUM_CHORDS.map((chord) => <option key={chord.id} value={chord.id}>{chord.name}</option>)}</select>
+              <button className="cursor-pointer rounded-xl border border-[#d89233] bg-gradient-to-r from-[#f6b955] to-[#ee936a] px-4 py-3 font-semibold text-[#1b2030] transition hover:brightness-105" onClick={() => setProgression((items) => [...items, selectedChord])}>+ Add chord</button>
+            </div>
             <div className="mt-5 min-h-[92px] rounded-[13px] border border-dashed border-[#435377] bg-[#0d1526]/70 p-3">
               {progression.length ? <div className="flex flex-wrap gap-2">{progression.map((chord, index) => <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${activeChord === index ? 'border-[#f2ae49] bg-[#f2ae4922]' : 'border-[#435377] bg-[#18233e]'}`} key={`${chord.id}-${index}`}><span className="font-mono text-xs text-[#77e4bf]">{index + 1}</span><span className="font-mono font-bold text-[#f2ae49]">{chord.name}</span><button className="cursor-pointer text-[#aeb9d2] hover:text-white" aria-label={`Remove ${chord.name}`} onClick={() => setProgression((items) => items.filter((_, itemIndex) => itemIndex !== index))}>×</button></div>)}</div> : <div className="grid h-[66px] place-items-center text-sm text-[#aeb9d2]">Choose chords above to create your loop.</div>}
             </div>
