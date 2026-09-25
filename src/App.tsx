@@ -12,45 +12,26 @@ export default function App() {
   const [reversed, setReversed] = useState(false)
   const [audioStatus, setAudioStatus] = useState('Recorded acoustic guitar · click a fret to hear it')
   const audio = useRef<GuitarAudio | null>(null)
-
   if (!audio.current) audio.current = new GuitarAudio(setAudioStatus)
 
   const matches = useMemo(() => findChordMatches(selectedNotes), [selectedNotes])
-
   const toggleNote = (pitch: PitchClass, midi?: number) => {
     setSelectedNotes((notes) => notes.includes(pitch) ? notes.filter((note) => note !== pitch) : [...notes, pitch])
     if (midi !== undefined) void audio.current?.play([midi])
   }
+  const clearSelection = () => { audio.current?.stop(); setSelectedNotes([]) }
+  const playSelectedChord = () => void audio.current?.play(selectedNotes.slice().sort((a, b) => a - b).map((pitch) => 48 + pitch), true)
 
-  const clearSelection = () => {
-    audio.current?.stop()
-    setSelectedNotes([])
-  }
-
-  const playSelectedChord = () => {
-    const midis = selectedNotes.slice().sort((a, b) => a - b).map((pitch) => 48 + pitch)
-    void audio.current?.play(midis, true)
-  }
-
-  return <main className="shell">
-    <AppHeader />
-    <section className="workspace" aria-label="Chord explorer">
-      <GuitarNeck
-        selectedNotes={selectedNotes}
-        reversed={reversed}
-        onReverse={() => setReversed((value) => !value)}
-        onClear={clearSelection}
-        onFretClick={toggleNote}
-      ><NotePicker selectedNotes={selectedNotes} onToggle={toggleNote} /></GuitarNeck>
-      <ChordResults
-        selectedNotes={selectedNotes}
-        matches={matches}
-        audioStatus={audioStatus}
-        onToggleNote={toggleNote}
-        onChooseChord={setSelectedNotes}
-        onPlayChord={playSelectedChord}
-      />
-    </section>
-    <footer>Guitar samples: <a href="https://github.com/nbrosowsky/tonejs-instruments">N. P. Brosowsky / University of Iowa</a> · <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a> · <a href="/audio/guitar/ATTRIBUTION.txt">Audio credits</a></footer>
+  return <main className="min-h-screen bg-[radial-gradient(circle_at_14%_0%,#203560_0,transparent_30rem),radial-gradient(circle_at_90%_90%,#17284e_0,transparent_34rem),#0b1020] px-4 py-5 text-[#eff3ff] sm:px-8 sm:py-7 lg:px-14 lg:pb-12">
+    <div className="mx-auto max-w-[1320px]">
+      <AppHeader />
+      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,1.55fr)_minmax(330px,.8fr)]" aria-label="Chord explorer">
+        <GuitarNeck selectedNotes={selectedNotes} reversed={reversed} onReverse={() => setReversed((value) => !value)} onClear={clearSelection} onFretClick={toggleNote}>
+          <NotePicker selectedNotes={selectedNotes} onToggle={toggleNote} />
+        </GuitarNeck>
+        <ChordResults selectedNotes={selectedNotes} matches={matches} audioStatus={audioStatus} onToggleNote={toggleNote} onChooseChord={setSelectedNotes} onPlayChord={playSelectedChord} />
+      </section>
+      <footer className="mt-5 text-xs text-[#aeb9d2]">Guitar samples: <a className="underline underline-offset-2 hover:text-white" href="https://github.com/nbrosowsky/tonejs-instruments">N. P. Brosowsky / University of Iowa</a> · <a className="underline underline-offset-2 hover:text-white" href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a> · <a className="underline underline-offset-2 hover:text-white" href="/audio/guitar/ATTRIBUTION.txt">Audio credits</a></footer>
+    </div>
   </main>
 }
