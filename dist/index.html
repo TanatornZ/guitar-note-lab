@@ -31,7 +31,7 @@
     .reset { cursor:pointer; border:1px solid var(--line); color:var(--muted); background:#0d1527; border-radius:10px; padding:8px 11px; font-size:.78rem; transition:.2s; }
     .reset:hover { color:var(--ink); border-color:var(--blue); }
     .fret-wrap { overflow-x:auto; padding-bottom:8px; }
-    .fretboard { min-width:730px; display:grid; grid-template-columns:48px repeat(13,1fr); grid-template-rows:repeat(6,49px); position:relative; border-radius:13px; background:linear-gradient(90deg,#27180e,#684021 10%,#4f2d18 100%); padding:0 9px 0 0; border:1px solid #966039; }
+    .fretboard { min-width:680px; display:grid; grid-template-columns:48px repeat(12,1fr); grid-template-rows:repeat(6,49px); position:relative; border-radius:13px; background:linear-gradient(90deg,#27180e,#684021 10%,#4f2d18 100%); padding:0 9px 0 0; border:1px solid #966039; }
     .fret-label { font:500 .68rem/1 'DM Mono',monospace; color:#dcb88c; display:grid; place-items:center; border-right:1px solid #d5a56888; }
     .fret { position:relative; border:0; border-right:2px solid #c3a3749c; background:linear-gradient(transparent 48%,#ded0ae 48%,#ded0ae 52%,transparent 52%); cursor:pointer; color:#fff; min-width:0; transition:background .16s, transform .16s; }
     .fret:first-of-type { border-right:4px solid #e8d5ae; }
@@ -41,7 +41,7 @@
     .dot { width:30px; height:30px; margin:auto; border-radius:50%; display:grid; place-items:center; font:500 .68rem/1 'DM Mono',monospace; color:#f8ead3; }
     .fret.selected .dot { background:var(--gold); color:#182033; font-weight:600; box-shadow:0 0 0 4px #f2ae4930,0 8px 16px #0007; }
     .string-name { color:#d9b488; font:500 .67rem/1 'DM Mono',monospace; background:#17100a; border-right:2px solid #d6a46d; display:grid; place-items:center; }
-    .fret-numbers { min-width:730px; display:grid; grid-template-columns:48px repeat(13,1fr); padding-right:9px; margin-top:8px; color:#8d9abb; font:500 .65rem/1 'DM Mono',monospace; text-align:center; }
+    .fret-numbers { min-width:680px; display:grid; grid-template-columns:48px repeat(12,1fr); padding-right:9px; margin-top:8px; color:#8d9abb; font:500 .65rem/1 'DM Mono',monospace; text-align:center; }
     .fret-numbers span:first-child { visibility:hidden; }
     .note-picker { display:flex; gap:7px; flex-wrap:wrap; margin-top:18px; }
     .note { cursor:pointer; width:43px; height:38px; border-radius:10px; border:1px solid var(--line); color:#d8e0f4; background:#0e172a; font:500 .82rem/1 'DM Mono',monospace; transition:.18s; }
@@ -63,6 +63,10 @@
     .empty { border:1px dashed #435377; border-radius:13px; padding:25px 16px; color:var(--muted); text-align:center; line-height:1.55; font-size:.9rem; }
     .footer-tip { display:flex; gap:10px; align-items:flex-start; margin-top:18px; padding:13px; border-radius:12px; background:#0d1526; color:var(--muted); font-size:.78rem; line-height:1.5; }
     .footer-tip b { color:var(--mint); font-family:'DM Mono',monospace; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .play-chord { width:100%; border:1px solid #d89233; color:#1b2030; background:linear-gradient(110deg,#f6b955,#ee936a); border-radius:12px; padding:12px 14px; cursor:pointer; font-weight:800; font-size:.88rem; margin:0 0 15px; transition:transform .16s,filter .16s; }
+    .play-chord:hover:not(:disabled) { transform:translateY(-2px); filter:brightness(1.08); }
+    .play-chord:disabled { cursor:not-allowed; opacity:.42; }
     @media (max-width:900px) { .workspace { grid-template-columns:1fr; } .result-card { min-height:auto; } }
     @media (max-width:620px) { .shell{padding:20px 14px 34px} header .hint{display:none} .heading{display:block}.heading p{margin-top:14px}.board-card,.result-card{padding:17px;border-radius:17px} .note{width:40px} }
   </style>
@@ -79,13 +83,14 @@
     </section>
     <section class="workspace" aria-label="Chord explorer">
       <div class="card board-card">
-        <div class="panel-head"><div><div class="eyebrow">Standard tuning · E A D G B E</div><h2>Guitar neck</h2></div><button class="reset" id="clearBoard" type="button">Clear selection</button></div>
+        <div class="panel-head"><div><div class="eyebrow">Standard tuning · E A D G B E</div><h2>Guitar neck</h2></div><div class="actions"><button class="reset" id="reverseStrings" type="button" aria-pressed="false">Reverse strings</button><button class="reset" id="clearBoard" type="button">Clear selection</button></div></div>
         <div class="fret-wrap"><div id="fretboard" class="fretboard" aria-label="Interactive guitar fretboard"></div><div id="fretNumbers" class="fret-numbers" aria-hidden="true"></div></div>
         <div class="note-picker" id="notePicker" aria-label="Choose notes by name"></div>
       </div>
       <aside class="card result-card" aria-live="polite">
         <div class="eyebrow">Selected notes</div>
         <div class="selection" id="selection"><div class="empty">Choose one or more notes to explore possible chords.</div></div>
+        <button class="play-chord" id="playChord" type="button" disabled>▶ Play selected chord</button>
         <div class="rule"></div>
         <div class="subhead"><span>Possible chord names</span><span class="match-count" id="matchCount">—</span></div>
         <div class="matches" id="matches"><div class="empty">Chord matches will appear here.</div></div>
@@ -103,14 +108,22 @@
       {suffix:'maj7', type:'major seventh', steps:[0,4,7,11]}, {suffix:'m7', type:'minor seventh', steps:[0,3,7,10]}, {suffix:'m7♭5', type:'half-diminished', steps:[0,3,6,10]},
       {suffix:'dim7', type:'diminished seventh', steps:[0,3,6,9]}, {suffix:'add9', type:'add nine', steps:[0,2,4,7]}, {suffix:'9', type:'dominant ninth', steps:[0,2,4,7,10]}
     ];
-    const selected = new Set();
+    const selected = new Set(); let reversed = false; let audioContext;
     const board = document.querySelector('#fretboard'); const picker = document.querySelector('#notePicker');
     const name = i => notes[(i + 120) % 12];
-    function play(midi) { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type='triangle'; osc.frequency.value=440*Math.pow(2,(midi-69)/12); gain.gain.setValueAtTime(.0001,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.015); gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.7); osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.72); }
+    function pluck(midi, delay=0, velocity=.72) {
+      const AudioCtx=window.AudioContext||window.webkitAudioContext; audioContext ||= new AudioCtx(); const ctx=audioContext; if(ctx.state==='suspended') ctx.resume();
+      const now=ctx.currentTime+delay, frequency=440*Math.pow(2,(midi-69)/12); const noise=ctx.createBuffer(1,Math.max(2,Math.floor(ctx.sampleRate*.045)),ctx.sampleRate); const samples=noise.getChannelData(0); for(let i=0;i<samples.length;i++) samples[i]=(Math.random()*2-1)*(1-i/samples.length);
+      const source=ctx.createBufferSource(), delayNode=ctx.createDelay(), tone=ctx.createBiquadFilter(), feedback=ctx.createGain(), output=ctx.createGain();
+      source.buffer=noise; delayNode.delayTime.value=1/frequency; tone.type='lowpass'; tone.frequency.value=Math.min(4200,frequency*7); tone.Q.value=.7; feedback.gain.value=.79; output.gain.setValueAtTime(.0001,now); output.gain.exponentialRampToValueAtTime(.19*velocity,now+.009); output.gain.exponentialRampToValueAtTime(.0001,now+2.25);
+      source.connect(delayNode); delayNode.connect(tone); tone.connect(feedback); feedback.connect(delayNode); tone.connect(output); output.connect(ctx.destination); source.start(now); source.stop(now+.05);
+    }
+    function playSelectedChord() { let previous=47; [...selected].sort((a,b)=>a-b).forEach((pitch,index)=>{let midi=48+pitch; while(midi<=previous) midi+=12; previous=midi; pluck(midi,index*.055,.64);}); }
     function toggle(pitch, midi) { selected.has(pitch) ? selected.delete(pitch) : selected.add(pitch); if (midi !== undefined) play(midi); render(); }
     function renderBoard() {
-      guitarStrings.forEach((string, stringIndex) => { const label=document.createElement('div'); label.className='string-name'; label.textContent=string.name; board.append(label); for(let fret=0; fret<=12; fret++) { const midi=string.midi+fret, pitch=midi%12; const btn=document.createElement('button'); btn.type='button'; btn.className='fret'; btn.dataset.pitch=pitch; btn.setAttribute('aria-label',`${string.name} string, fret ${fret}, ${name(pitch)}`); btn.innerHTML=`<span class="dot">${name(pitch)}</span>`; btn.addEventListener('click',()=>toggle(pitch,midi)); board.append(btn); } });
-      document.querySelector('#fretNumbers').innerHTML='<span></span>'+Array.from({length:13},(_,i)=>`<span>${i}</span>`).join('');
+      board.innerHTML=''; picker.innerHTML=''; const displayStrings=reversed?[...guitarStrings].reverse():guitarStrings;
+      displayStrings.forEach(string => { const label=document.createElement('div'); label.className='string-name'; label.textContent=string.name; board.append(label); for(let fret=1; fret<=12; fret++) { const midi=string.midi+fret, pitch=midi%12; const btn=document.createElement('button'); btn.type='button'; btn.className='fret'; btn.dataset.pitch=pitch; btn.setAttribute('aria-label',`${string.name} string, fret ${fret}, ${name(pitch)}`); btn.innerHTML=`<span class="dot">${name(pitch)}</span>`; btn.addEventListener('click',()=>toggle(pitch,midi)); board.append(btn); } });
+      document.querySelector('#fretNumbers').innerHTML='<span></span>'+Array.from({length:12},(_,i)=>`<span>${i+1}</span>`).join('');
       notes.forEach((note,i)=>{const btn=document.createElement('button'); btn.type='button';btn.className='note';btn.dataset.pitch=i;btn.textContent=note;btn.setAttribute('aria-label',`Toggle ${note}`);btn.addEventListener('click',()=>toggle(i));picker.append(btn);});
     }
     function chordMatches() { const chosen=[...selected]; if(!chosen.length) return []; const found=[]; for(let root=0;root<12;root++) for(const shape of shapes) { const toneSet=new Set(shape.steps.map(step=>(root+step)%12)); if(chosen.every(n=>toneSet.has(n))) found.push({name:name(root)+shape.suffix,type:shape.type, tones:[...toneSet], exact:toneSet.size===chosen.length}); } return found.sort((a,b)=>Number(b.exact)-Number(a.exact)||a.tones.length-b.tones.length||a.name.localeCompare(b.name)); }
@@ -120,9 +133,13 @@
       selection.innerHTML=selected.size?[...selected].sort((a,b)=>a-b).map(i=>`<button class="chip" data-remove="${i}" title="Remove ${name(i)}">${name(i)} ×</button>`).join(''):'<div class="empty">Choose one or more notes to explore possible chords.</div>';
       selection.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',()=>{selected.delete(+btn.dataset.remove);render()}));
       document.querySelector('#matchCount').textContent=selected.size ? `${found.length} match${found.length===1?'':'es'}` : '—';
+      document.querySelector('#playChord').disabled=selected.size<2;
       matches.innerHTML=found.length?found.slice(0,24).map(chord=>`<div class="match ${chord.exact?'exact':''}"><span class="chord-name">${chord.name}</span><span><small>${chord.tones.map(name).join(' · ')}</small></span><span class="type">${chord.exact?'exact set':'compatible'}<br>${chord.type}</span></div>`).join(''):(selected.size?'<div class="empty">No common chord quality contains this exact combination. Try removing a note.</div>':'<div class="empty">Chord matches will appear here.</div>');
     }
-    document.querySelector('#clearBoard').addEventListener('click',()=>{selected.clear();render()}); renderBoard(); render();
+    document.querySelector('#clearBoard').addEventListener('click',()=>{selected.clear();render()});
+    document.querySelector('#playChord').addEventListener('click',playSelectedChord);
+    document.querySelector('#reverseStrings').addEventListener('click',event=>{reversed=!reversed; event.currentTarget.setAttribute('aria-pressed',String(reversed)); event.currentTarget.textContent=reversed?'Normal strings':'Reverse strings'; renderBoard(); render();});
+    renderBoard(); render();
   </script>
 </body>
 </html>
