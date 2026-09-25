@@ -109,15 +109,20 @@
       {suffix:'maj7', type:'major seventh', steps:[0,4,7,11]}, {suffix:'m7', type:'minor seventh', steps:[0,3,7,10]}, {suffix:'m7♭5', type:'half-diminished', steps:[0,3,6,10]},
       {suffix:'dim7', type:'diminished seventh', steps:[0,3,6,9]}, {suffix:'add9', type:'add nine', steps:[0,2,4,7]}, {suffix:'9', type:'dominant ninth', steps:[0,2,4,7,10]}
     ];
-    const selected = new Set(); let reversed = false; let audioContext;
+    const selected = new Set(); let reversed = false; let audioContext; let audioMaster;
     const board = document.querySelector('#fretboard'); const picker = document.querySelector('#notePicker');
     const name = i => notes[(i + 120) % 12];
     function pluck(midi, delay=0, velocity=.72) {
       const AudioCtx=window.AudioContext||window.webkitAudioContext; audioContext ||= new AudioCtx(); const ctx=audioContext; if(ctx.state==='suspended') ctx.resume();
-      const now=ctx.currentTime+delay, frequency=440*Math.pow(2,(midi-69)/12); const noise=ctx.createBuffer(1,Math.max(2,Math.floor(ctx.sampleRate*.045)),ctx.sampleRate); const samples=noise.getChannelData(0); for(let i=0;i<samples.length;i++) samples[i]=(Math.random()*2-1)*(1-i/samples.length);
-      const source=ctx.createBufferSource(), delayNode=ctx.createDelay(), tone=ctx.createBiquadFilter(), feedback=ctx.createGain(), output=ctx.createGain();
-      source.buffer=noise; delayNode.delayTime.value=1/frequency; tone.type='lowpass'; tone.frequency.value=Math.min(4200,frequency*7); tone.Q.value=.7; feedback.gain.value=.79; output.gain.setValueAtTime(.0001,now); output.gain.exponentialRampToValueAtTime(.19*velocity,now+.009); output.gain.exponentialRampToValueAtTime(.0001,now+2.25);
-      source.connect(delayNode); delayNode.connect(tone); tone.connect(feedback); feedback.connect(delayNode); tone.connect(output); output.connect(ctx.destination); source.start(now); source.stop(now+.05);
+      if(!audioMaster) { audioMaster=ctx.createDynamicsCompressor(); audioMaster.threshold.value=-18; audioMaster.knee.value=14; audioMaster.ratio.value=7; audioMaster.attack.value=.004; audioMaster.release.value=.22; audioMaster.connect(ctx.destination); }
+      const now=ctx.currentTime+delay, frequency=440*Math.pow(2,(midi-69)/12), excitationLength=Math.max(2,Math.floor(ctx.sampleRate*.027));
+      const noise=ctx.createBuffer(1,excitationLength,ctx.sampleRate), samples=noise.getChannelData(0); for(let i=0;i<samples.length;i++) { const fade=1-i/samples.length; samples[i]=(Math.random()*2-1)*fade*fade; }
+      const source=ctx.createBufferSource(), excite=ctx.createBiquadFilter(), stringDelay=ctx.createDelay(), damping=ctx.createBiquadFilter(), feedback=ctx.createGain(), body=ctx.createBiquadFilter(), output=ctx.createGain(), pickFilter=ctx.createBiquadFilter(), pickGain=ctx.createGain();
+      source.buffer=noise; excite.type='lowpass'; excite.frequency.value=Math.min(8000,frequency*20); excite.Q.value=.45; stringDelay.delayTime.value=1/frequency;
+      damping.type='lowpass'; damping.frequency.value=Math.min(5400,Math.max(1300,frequency*13)); damping.Q.value=.6; feedback.gain.value=Math.max(.93,.982-frequency/26000);
+      body.type='peaking'; body.frequency.value=170; body.Q.value=.85; body.gain.value=4.5; output.gain.setValueAtTime(.0001,now); output.gain.exponentialRampToValueAtTime(.17*velocity,now+.008); output.gain.exponentialRampToValueAtTime(.0001,now+3.4);
+      pickFilter.type='highpass'; pickFilter.frequency.value=2100; pickGain.gain.setValueAtTime(.055*velocity,now); pickGain.gain.exponentialRampToValueAtTime(.0001,now+.045);
+      source.connect(excite); excite.connect(stringDelay); stringDelay.connect(damping); damping.connect(feedback); feedback.connect(stringDelay); damping.connect(body); body.connect(output); output.connect(audioMaster); source.connect(pickFilter); pickFilter.connect(pickGain); pickGain.connect(audioMaster); source.start(now); source.stop(now+.03);
     }
     function playSelectedChord() { let previous=47; [...selected].sort((a,b)=>a-b).forEach((pitch,index)=>{let midi=48+pitch; while(midi<=previous) midi+=12; previous=midi; pluck(midi,index*.055,.64);}); }
     function toggle(pitch, midi) {
