@@ -22,10 +22,10 @@ export default function App() {
   const clearSelection = () => { audio.current?.stop(); setSelectedNotes([]) }
   const playSelectedChord = () => void audio.current?.play(selectedNotes.slice().sort((a, b) => a - b).map((pitch) => 48 + pitch), true)
 
-  return <main className="min-h-screen bg-[radial-gradient(circle_at_14%_0%,#203560_0,transparent_30rem),radial-gradient(circle_at_90%_90%,#17284e_0,transparent_34rem),#0b1020] px-4 py-5 text-[#eff3ff] sm:px-8 sm:py-7 lg:px-14 lg:pb-12">
+  return <main className="min-h-screen bg-[#0b1020] bg-[image:radial-gradient(circle_at_14%_0%,#203560_0,transparent_30rem),radial-gradient(circle_at_90%_90%,#17284e_0,transparent_34rem)] px-[clamp(18px,4vw,56px)] pt-7 pb-12 font-sans text-[#eff3ff]">
     <div className="mx-auto max-w-[1320px]">
       <AppHeader />
-      <section className="grid gap-[18px] lg:grid-cols-[minmax(0,1.55fr)_minmax(330px,.8fr)]" aria-label="Chord explorer">
+      <section className="grid gap-[18px] min-[900px]:grid-cols-[minmax(0,1.55fr)_minmax(330px,.8fr)]" aria-label="Chord explorer">
         <GuitarNeck selectedNotes={selectedNotes} reversed={reversed} onReverse={() => setReversed((value) => !value)} onClear={clearSelection} onFretClick={toggleNote}>
           <NotePicker selectedNotes={selectedNotes} onToggle={toggleNote} />
         </GuitarNeck>
