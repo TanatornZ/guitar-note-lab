@@ -19,8 +19,10 @@ Before handing off a change, run both `npm run check` and `npm run build`.
 ## Project layout
 
 - `src/App.tsx` composes the application screen.
+- `src/pages/` contains hash-routed screens, including the chord finder and Strum Studio.
 - `src/components/` contains presentational UI components.
 - `src/data/music.ts` contains note names, standard tuning, and chord shapes.
+- `src/data/strumChords.ts` contains playable guitar voicings for the Strum Studio chord palette.
 - `src/lib/chords.ts` derives compatible chord names from selected pitch classes.
 - `src/types/music.ts` contains the shared music-domain TypeScript types.
 - `src/audio/GuitarAudio.ts` loads, pitches, strums, and stops the recorded guitar samples.
@@ -34,6 +36,8 @@ Before handing off a change, run both `npm run check` and `npm run build`.
 - Keep musical notes as pitch classes (`0`–`11`) and use `noteName()` for display.
 - A selected pitch class highlights every matching note on the neck.
 - Clicking a chord result must replace the selected set with the chord tones.
+- Keep the Strum Studio route at `#/strum` so it works on static hosting.
+- In the Strum Studio, a progression item lasts one complete bar; pattern steps must align with the selected time signature.
 
 ## Audio and attribution
 

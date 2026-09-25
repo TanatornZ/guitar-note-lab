@@ -51,6 +51,18 @@ export class GuitarAudio {
     await this.loading
   }
 
+  async prepare(): Promise<boolean> {
+    try {
+      await this.setup()
+      this.onStatus('Acoustic guitar ready')
+      return true
+    } catch (error) {
+      this.onStatus('Sound could not load. Click Play to retry.')
+      console.warn('Guitar playback:', error)
+      return false
+    }
+  }
+
   async play(midis: number[], strum = false): Promise<void> {
     try {
       await this.setup()
@@ -60,6 +72,38 @@ export class GuitarAudio {
     } catch (error) {
       this.onStatus('Sound could not load. Click a note to retry.')
       console.warn('Guitar playback:', error)
+    }
+  }
+
+  async playStrum(midis: number[], direction: 'down' | 'up'): Promise<void> {
+    try {
+      await this.setup()
+      const orderedNotes = [...midis].sort((a, b) => direction === 'down' ? a - b : b - a)
+      const start = this.context!.currentTime + 0.01
+      orderedNotes.forEach((midi, index) => this.schedule(midi, start + index * 0.042, orderedNotes.length))
+      this.onStatus(`${direction === 'down' ? 'Down' : 'Up'}stroke playing`)
+    } catch (error) {
+      this.onStatus('Sound could not load. Click Play to retry.')
+      console.warn('Guitar playback:', error)
+    }
+  }
+
+  async playMetronome(accent = false): Promise<void> {
+    try {
+      await this.setup()
+      const oscillator = this.context!.createOscillator()
+      const gain = this.context!.createGain()
+      const start = this.context!.currentTime
+      oscillator.type = 'triangle'
+      oscillator.frequency.setValueAtTime(accent ? 1280 : 860, start)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(accent ? 0.18 : 0.1, start + 0.003)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.055)
+      oscillator.connect(gain).connect(this.master!)
+      oscillator.start(start)
+      oscillator.stop(start + 0.06)
+    } catch (error) {
+      console.warn('Metronome playback:', error)
     }
   }
 
