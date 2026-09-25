@@ -36,7 +36,7 @@
     .fret { position:relative; border:0; border-right:2px solid #c3a3749c; background:linear-gradient(transparent 48%,#ded0ae 48%,#ded0ae 52%,transparent 52%); cursor:pointer; color:#fff; min-width:0; transition:background .16s, transform .16s; }
     .fret:first-of-type { border-right:4px solid #e8d5ae; }
     .fret:hover { background-color:#ffffff17; }
-    .fret:focus-visible,.note:focus-visible,.chip:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
+    .fret:focus-visible,.note:focus-visible,.chip:focus-visible,.match:focus-visible { outline:3px solid var(--blue); outline-offset:2px; }
     .fret.selected { background-color:#f2ae4950; }
     .dot { width:30px; height:30px; margin:auto; border-radius:50%; display:grid; place-items:center; font:500 .68rem/1 'DM Mono',monospace; color:#f8ead3; }
     .fret.selected .dot { background:var(--gold); color:#182033; font-weight:600; box-shadow:0 0 0 4px #f2ae4930,0 8px 16px #0007; }
@@ -55,8 +55,9 @@
     .subhead { display:flex; justify-content:space-between; align-items:center; gap:10px; color:var(--muted); font-size:.78rem; }
     .match-count { color:var(--mint); font:500 .72rem/1 'DM Mono',monospace; }
     .matches { display:grid; gap:9px; margin-top:14px; }
-    .match { border:1px solid #314262; background:#10192c; border-radius:13px; padding:12px 13px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; }
+    .match { width:100%; border:1px solid #314262; background:#10192c; border-radius:13px; padding:12px 13px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; color:inherit; text-align:left; cursor:pointer; transition:border-color .16s,transform .16s,background .16s; }
     .match.exact { border-color:#916a31; background:linear-gradient(100deg,#2a2115,#151d2e); }
+    .match:hover { border-color:var(--gold); transform:translateX(3px); background:#1a2945; }
     .chord-name { font:700 1.12rem/1 'DM Mono',monospace; color:var(--gold); }
     .match small { color:var(--muted); display:block; margin-top:5px; font-size:.72rem; }
     .type { color:#bdd0f3; font-size:.72rem; text-align:right; }
@@ -92,7 +93,7 @@
         <div class="selection" id="selection"><div class="empty">Choose one or more notes to explore possible chords.</div></div>
         <button class="play-chord" id="playChord" type="button" disabled>▶ Play selected chord</button>
         <div class="rule"></div>
-        <div class="subhead"><span>Possible chord names</span><span class="match-count" id="matchCount">—</span></div>
+        <div class="subhead"><span>Possible chord names · click to show notes</span><span class="match-count" id="matchCount">—</span></div>
         <div class="matches" id="matches"><div class="empty">Chord matches will appear here.</div></div>
         <div class="footer-tip"><b>TIP</b><span>Gold cards are exact note sets. Other cards are compatible chords with extra tones you could add.</span></div>
       </aside>
@@ -131,6 +132,7 @@
       notes.forEach((note,i)=>{const btn=document.createElement('button'); btn.type='button';btn.className='note';btn.dataset.pitch=i;btn.textContent=note;btn.setAttribute('aria-label',`Toggle ${note}`);btn.addEventListener('click',()=>toggle(i));picker.append(btn);});
     }
     function chordMatches() { const chosen=[...selected]; if(!chosen.length) return []; const found=[]; for(let root=0;root<12;root++) for(const shape of shapes) { const toneSet=new Set(shape.steps.map(step=>(root+step)%12)); if(chosen.every(n=>toneSet.has(n))) found.push({name:name(root)+shape.suffix,type:shape.type, tones:[...toneSet], exact:toneSet.size===chosen.length}); } return found.sort((a,b)=>Number(b.exact)-Number(a.exact)||a.tones.length-b.tones.length||a.name.localeCompare(b.name)); }
+    function showChord(tones) { selected.clear(); tones.split(',').forEach(tone=>selected.add(+tone)); render(); }
     function render() {
       document.querySelectorAll('[data-pitch]').forEach(el=>el.classList.toggle('selected',selected.has(+el.dataset.pitch)));
       const selection=document.querySelector('#selection'); const matches=document.querySelector('#matches'); const found=chordMatches();
@@ -138,7 +140,8 @@
       selection.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',()=>{selected.delete(+btn.dataset.remove);render()}));
       document.querySelector('#matchCount').textContent=selected.size ? `${found.length} match${found.length===1?'':'es'}` : '—';
       document.querySelector('#playChord').disabled=selected.size<2;
-      matches.innerHTML=found.length?found.slice(0,24).map(chord=>`<div class="match ${chord.exact?'exact':''}"><span class="chord-name">${chord.name}</span><span><small>${chord.tones.map(name).join(' · ')}</small></span><span class="type">${chord.exact?'exact set':'compatible'}<br>${chord.type}</span></div>`).join(''):(selected.size?'<div class="empty">No common chord quality contains this exact combination. Try removing a note.</div>':'<div class="empty">Chord matches will appear here.</div>');
+      matches.innerHTML=found.length?found.slice(0,24).map(chord=>`<button type="button" class="match ${chord.exact?'exact':''}" data-tones="${chord.tones.join(',')}" aria-label="Show ${chord.name} notes on fretboard"><span class="chord-name">${chord.name}</span><span><small>${chord.tones.map(name).join(' · ')}</small></span><span class="type">${chord.exact?'exact set':'compatible'}<br>${chord.type}</span></button>`).join(''):(selected.size?'<div class="empty">No common chord quality contains this exact combination. Try removing a note.</div>':'<div class="empty">Chord matches will appear here.</div>');
+      matches.querySelectorAll('[data-tones]').forEach(button=>button.addEventListener('click',()=>showChord(button.dataset.tones)));
     }
     document.querySelector('#clearBoard').addEventListener('click',()=>{selected.clear();render()});
     document.querySelector('#playChord').addEventListener('click',playSelectedChord);
