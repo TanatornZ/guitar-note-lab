@@ -38,6 +38,7 @@ Before handing off a change, run both `npm run check` and `npm run build`.
 - Clicking a chord result must replace the selected set with the chord tones.
 - Keep the Strum Studio route at `#/strum` so it works on static hosting.
 - In the Strum Studio, a progression item lasts one complete bar; pattern steps must align with the selected time signature.
+- Half-beat mode adds an offbeat `&` step after each numbered beat. It doubles the pattern timing while metronome clicks remain on the numbered beats only.
 
 ## Audio and attribution
 

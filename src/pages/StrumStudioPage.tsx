@@ -17,8 +17,13 @@ const directionLabel: Record<StrumDirection, string> = {
   rest: '— Rest',
 }
 
-function defaultPattern(beats: number): StrumDirection[] {
-  return Array.from({ length: beats }, (_, index) => index === 0 || index % 2 === 0 ? 'down' : 'up')
+function defaultPattern(beats: number, halfBeats = false): StrumDirection[] {
+  const subdivisions = halfBeats ? 2 : 1
+  return Array.from({ length: beats * subdivisions }, (_, index) => {
+    if (halfBeats && index % 2 === 1) return 'rest'
+    const beat = Math.floor(index / subdivisions)
+    return beat === 0 || beat % 2 === 0 ? 'down' : 'up'
+  })
 }
 
 function nextDirection(direction: StrumDirection): StrumDirection {
@@ -30,6 +35,8 @@ export function StrumStudioPage() {
   const [signature, setSignature] = useState(TIME_SIGNATURES[2])
   const [bpm, setBpm] = useState(96)
   const [pattern, setPattern] = useState<StrumDirection[]>(defaultPattern(TIME_SIGNATURES[2].beats))
+  const [halfBeats, setHalfBeats] = useState(false)
+  const [metronomeEnabled, setMetronomeEnabled] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
   const [activeBeat, setActiveBeat] = useState(-1)
   const [activeChord, setActiveChord] = useState(-1)
@@ -42,29 +49,32 @@ export function StrumStudioPage() {
 
   const tick = useCallback(() => {
     if (!progression.length) return
-    const beat = beatRef.current % signature.beats
+    const subdivisions = halfBeats ? 2 : 1
+    const totalSteps = signature.beats * subdivisions
+    const step = beatRef.current % totalSteps
+    const beat = Math.floor(step / subdivisions)
     const chordIndex = chordRef.current % progression.length
-    const direction = pattern[beat] ?? 'rest'
+    const direction = pattern[step] ?? 'rest'
     const chord = progression[chordIndex]
 
-    setActiveBeat(beat)
+    setActiveBeat(step)
     setActiveChord(chordIndex)
-    void audio.current?.playMetronome(beat === 0)
+    if (metronomeEnabled && step % subdivisions === 0) void audio.current?.playMetronome(beat === 0)
     if (direction !== 'rest') void audio.current?.playStrum(chord.midis, direction)
 
-    beatRef.current = beat + 1
-    if (beatRef.current >= signature.beats) {
+    beatRef.current = step + 1
+    if (beatRef.current >= totalSteps) {
       beatRef.current = 0
       chordRef.current = (chordIndex + 1) % progression.length
     }
-  }, [pattern, progression, signature.beats])
+  }, [halfBeats, metronomeEnabled, pattern, progression, signature.beats])
 
   useEffect(() => {
     if (!isPlaying) return
     tick()
-    const timer = window.setInterval(tick, 60000 / bpm)
+    const timer = window.setInterval(tick, 60000 / bpm / (halfBeats ? 2 : 1))
     return () => window.clearInterval(timer)
-  }, [bpm, isPlaying, tick])
+  }, [bpm, halfBeats, isPlaying, tick])
 
   useEffect(() => {
     if (!progression.length && isPlaying) {
@@ -100,7 +110,15 @@ export function StrumStudioPage() {
   const updateSignature = (label: string) => {
     const selected = TIME_SIGNATURES.find((option) => option.label === label) ?? TIME_SIGNATURES[2]
     setSignature(selected)
-    setPattern(defaultPattern(selected.beats))
+    setPattern(defaultPattern(selected.beats, halfBeats))
+    beatRef.current = 0
+    setActiveBeat(-1)
+  }
+
+  const toggleHalfBeats = () => {
+    const nextValue = !halfBeats
+    setHalfBeats(nextValue)
+    setPattern(defaultPattern(signature.beats, nextValue))
     beatRef.current = 0
     setActiveBeat(-1)
   }
@@ -130,9 +148,9 @@ export function StrumStudioPage() {
 
           <section className="rounded-[22px] border border-[#314267] bg-[linear-gradient(145deg,#18233eeb,#111a2eee)] p-5 shadow-[0_24px_50px_#02050f55] sm:p-6">
             <div className="font-mono text-xs font-medium tracking-[.11em] text-[#f2ae49] uppercase">3 · Strum pattern</div><h2 className="mt-2 text-lg font-bold">Choose the direction on each beat</h2>
-            <p className="mt-2 text-sm text-[#aeb9d2]">Click a beat to cycle through downstroke, upstroke, and rest.</p>
-            <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: `repeat(${signature.beats}, minmax(0, 1fr))` }}>
-              {pattern.map((direction, index) => <button key={index} onClick={() => setPattern((steps) => steps.map((step, stepIndex) => stepIndex === index ? nextDirection(step) : step))} className={`min-h-[94px] cursor-pointer rounded-[13px] border p-3 text-center transition ${activeBeat === index && isPlaying ? 'border-[#f2ae49] bg-[#f2ae4922] shadow-[0_0_0_3px_#f2ae4920]' : 'border-[#435377] bg-[#0e172a] hover:border-[#f2ae49]'}`}><span className="block font-mono text-xs text-[#77e4bf]">Beat {index + 1}</span><span className="mt-2 block text-lg font-bold text-[#f2ae49]">{directionLabel[direction]}</span></button>)}
+            <p className="mt-2 text-sm text-[#aeb9d2]">Click a step to cycle through downstroke, upstroke, and rest. Half-beat mode adds an “&” step between every numbered beat.</p>
+            <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(pattern.length, 4)}, minmax(0, 1fr))` }}>
+              {pattern.map((direction, index) => <button key={index} onClick={() => setPattern((steps) => steps.map((step, stepIndex) => stepIndex === index ? nextDirection(step) : step))} className={`min-h-[94px] cursor-pointer rounded-[13px] border p-3 text-center transition ${activeBeat === index && isPlaying ? 'border-[#f2ae49] bg-[#f2ae4922] shadow-[0_0_0_3px_#f2ae4920]' : 'border-[#435377] bg-[#0e172a] hover:border-[#f2ae49]'}`}><span className="block font-mono text-xs text-[#77e4bf]">{halfBeats ? (index % 2 === 0 ? `Beat ${index / 2 + 1}` : '&') : `Beat ${index + 1}`}</span><span className="mt-2 block text-lg font-bold text-[#f2ae49]">{directionLabel[direction]}</span></button>)}
             </div>
           </section>
         </div>
@@ -144,7 +162,11 @@ export function StrumStudioPage() {
           <div className="mt-2 flex justify-between font-mono text-xs text-[#8d9abb]"><span>50</span><span>220</span></div>
           <label className="mt-6 block text-sm font-semibold text-[#d8e0f4]" htmlFor="signature">Time signature</label>
           <select id="signature" value={signature.label} onChange={(event) => updateSignature(event.target.value)} className="mt-2 w-full cursor-pointer rounded-xl border border-[#435377] bg-[#0e172a] px-3 py-3 text-sm text-[#eff3ff] outline-none focus:border-[#f2ae49]">{TIME_SIGNATURES.map((option) => <option key={option.label}>{option.label}</option>)}</select>
-          <p className="mt-2 text-xs leading-relaxed text-[#aeb9d2]">The first beat is accented. In 6/8, every pattern step is an eighth-note pulse.</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition ${metronomeEnabled ? 'border-[#77e4bf] bg-[#77e4bf18] text-[#77e4bf]' : 'border-[#435377] bg-[#0e172a] text-[#aeb9d2]'}`} onClick={() => setMetronomeEnabled((enabled) => !enabled)}>{metronomeEnabled ? '● Metronome on' : '○ Metronome off'}</button>
+            <button className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition ${halfBeats ? 'border-[#f2ae49] bg-[#f2ae4918] text-[#f2ae49]' : 'border-[#435377] bg-[#0e172a] text-[#aeb9d2]'}`} onClick={toggleHalfBeats}>{halfBeats ? '½ Half-beats on' : '½ Add half-beats'}</button>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-[#aeb9d2]">The first numbered beat is accented. {halfBeats ? 'Each “&” is halfway between regular beats.' : 'Turn on half-beats to add an editable “&” step between every beat.'}</p>
           <div className="my-6 h-px bg-[#2b3a5c]" />
           <button className={`w-full cursor-pointer rounded-xl border px-4 py-3 font-extrabold transition ${isPlaying ? 'border-[#a65a55] bg-[#512a2a] text-[#ffd7d3] hover:bg-[#623333]' : 'border-[#d89233] bg-gradient-to-r from-[#f6b955] to-[#ee936a] text-[#1b2030] hover:brightness-105'}`} onClick={isPlaying ? stopPlayback : startPlayback}>{isPlaying ? '■ Stop performance' : '▶ Play performance'}</button>
           <p className="mt-3 text-center text-sm text-[#aeb9d2]" role="status">{audioStatus}</p>
