@@ -3,12 +3,16 @@ type StatusHandler = (status: string) => void
 type Voice = {
   source: AudioBufferSourceNode
   gain: GainNode
+  midi: number
+  strummed: boolean
+  releasing: boolean
 }
 
 type NoteOptions = {
   velocity?: number
   detune?: number
   brightness?: number
+  strummed?: boolean
 }
 
 const SAMPLES: Array<[midi: number, file: string]> = [
@@ -21,6 +25,7 @@ export class GuitarAudio {
   private master?: GainNode
   private output?: DynamicsCompressorNode
   private loading?: Promise<void>
+  private playbackGeneration = 0
   private readonly buffers = new Map<number, AudioBuffer>()
   private readonly voices = new Set<Voice>()
 
@@ -76,8 +81,10 @@ export class GuitarAudio {
   }
 
   async prepare(): Promise<boolean> {
+    const generation = this.playbackGeneration
     try {
       await this.setup()
+      if (generation !== this.playbackGeneration) return false
       this.onStatus('Acoustic guitar ready')
       return true
     } catch (error) {
@@ -88,8 +95,10 @@ export class GuitarAudio {
   }
 
   async play(midis: number[], strum = false): Promise<void> {
+    const generation = this.playbackGeneration
     try {
       await this.setup()
+      if (generation !== this.playbackGeneration) return
       if (strum) {
         this.scheduleStrum(midis, 'down')
       } else {
@@ -103,10 +112,12 @@ export class GuitarAudio {
     }
   }
 
-  async playStrum(midis: number[], direction: 'down' | 'up'): Promise<void> {
+  async playStrum(midis: number[], direction: 'down' | 'up', accent = false): Promise<void> {
+    const generation = this.playbackGeneration
     try {
       await this.setup()
-      this.scheduleStrum(midis, direction)
+      if (generation !== this.playbackGeneration) return
+      this.scheduleStrum(midis, direction, accent)
       this.onStatus(`${direction === 'down' ? 'Down' : 'Up'}stroke playing`)
     } catch (error) {
       this.onStatus('Sound could not load. Click Play to retry.')
@@ -115,8 +126,10 @@ export class GuitarAudio {
   }
 
   async playMetronome(accent = false): Promise<void> {
+    const generation = this.playbackGeneration
     try {
       await this.setup()
+      if (generation !== this.playbackGeneration) return
       const oscillator = this.context!.createOscillator()
       const gain = this.context!.createGain()
       const start = this.context!.currentTime
@@ -133,20 +146,33 @@ export class GuitarAudio {
     }
   }
 
-  private scheduleStrum(midis: number[], direction: 'down' | 'up'): void {
-    const orderedNotes = [...midis].sort((a, b) => direction === 'down' ? a - b : b - a)
+  private scheduleStrum(midis: number[], direction: 'down' | 'up', accent = false): void {
+    const chord = [...midis].sort((a, b) => a - b)
+    // A returning pick usually brushes the treble strings; the bass keeps ringing.
+    const orderedNotes = direction === 'down' ? chord : chord.slice(-4).reverse()
     const start = this.context!.currentTime + 0.012
-    const baseGap = direction === 'down' ? 0.027 : 0.023
+    const baseGap = direction === 'down' ? 0.011 : 0.008
+    const strokeVelocity = (direction === 'down' ? 1 : 0.76) * (accent ? 1.12 : 1) * (0.96 + Math.random() * 0.08)
     let offset = 0
 
+    // Release notes no longer held by the fretting hand before the new chord.
+    this.voices.forEach((voice) => {
+      if (voice.strummed && !voice.releasing && !chord.includes(voice.midi)) this.releaseVoice(voice, start, 0.18)
+    })
+
     orderedNotes.forEach((midi, index) => {
-      if (index > 0) offset += baseGap + (Math.random() - 0.5) * 0.009
+      if (index > 0) offset += baseGap * (0.85 + Math.random() * 0.3)
       const position = orderedNotes.length > 1 ? index / (orderedNotes.length - 1) : 0
-      const directionalAccent = direction === 'down' ? 1.08 - position * 0.17 : 0.91 + position * 0.16
-      this.schedule(midi, start + offset, orderedNotes.length, {
-        velocity: directionalAccent * (0.96 + Math.random() * 0.08),
-        detune: (Math.random() - 0.5) * 7,
-        brightness: direction === 'down' ? 7600 - position * 700 : 6900 + position * 650,
+      const when = start + offset
+      this.voices.forEach((voice) => {
+        // Preserve the ringing tail beneath the next pick attack.
+        if (voice.strummed && !voice.releasing && voice.midi === midi) this.releaseVoice(voice, when, 0.65)
+      })
+      this.schedule(midi, when, chord.length, {
+        velocity: strokeVelocity * (1.05 - position * 0.12) * (0.97 + Math.random() * 0.06),
+        detune: (Math.random() - 0.5) * 3,
+        brightness: 5400 + strokeVelocity * 2200 - position * 500,
+        strummed: true,
       })
     })
   }
@@ -160,9 +186,13 @@ export class GuitarAudio {
     source.playbackRate.value = 2 ** ((midi - sampleMidi) / 12)
     source.detune.value = options.detune ?? 0
     tone.type = 'lowpass'
-    tone.frequency.value = options.brightness ?? 7400
+    const brightness = options.brightness ?? 7400
+    tone.frequency.setValueAtTime(brightness, when)
+    // Keep the recorded pick attack, then let the bright overtones soften.
+    tone.frequency.exponentialRampToValueAtTime(brightness * 0.78, when + 1.4)
     tone.Q.value = 0.28
-    const duration = Math.min(source.buffer.duration / source.playbackRate.value, 5)
+    // The recording already contains the guitar's natural decay; do not truncate it.
+    const duration = source.buffer.duration / source.playbackRate.value
     const volume = ((0.7 + Math.random() * 0.045) * (options.velocity ?? 1)) / Math.sqrt(Math.max(1, chordSize))
 
     gain.gain.setValueAtTime(0, when)
@@ -171,7 +201,7 @@ export class GuitarAudio {
     gain.gain.linearRampToValueAtTime(0, when + duration)
     source.connect(tone).connect(gain).connect(this.master!)
 
-    const voice = { source, gain }
+    const voice = { source, gain, midi, strummed: options.strummed ?? false, releasing: false }
     this.voices.add(voice)
     source.onended = () => {
       source.disconnect()
@@ -181,6 +211,14 @@ export class GuitarAudio {
     }
     source.start(when)
     source.stop(when + duration + 0.01)
+  }
+
+  private releaseVoice(voice: Voice, when: number, releaseSeconds = 0.025): void {
+    voice.gain.gain.cancelAndHoldAtTime(when)
+    voice.gain.gain.linearRampToValueAtTime(0, when + releaseSeconds)
+    voice.source.stop(when + releaseSeconds + 0.005)
+    // Keep fading voices tracked until onended so Stop can silence their tails too.
+    voice.releasing = true
   }
 
   private createRoomImpulse(seconds: number, decay: number): AudioBuffer {
@@ -197,13 +235,9 @@ export class GuitarAudio {
   }
 
   stop(): void {
+    this.playbackGeneration += 1
     if (!this.context) return
     const now = this.context.currentTime
-    this.voices.forEach(({ source, gain }) => {
-      gain.gain.cancelAndHoldAtTime(now)
-      gain.gain.linearRampToValueAtTime(0, now + 0.025)
-      source.stop(now + 0.03)
-    })
-    this.voices.clear()
+    this.voices.forEach((voice) => this.releaseVoice(voice, now))
   }
 }

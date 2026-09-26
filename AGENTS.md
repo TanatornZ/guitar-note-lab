@@ -41,8 +41,10 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 - A selected pitch class highlights every matching note on the neck.
 - Clicking a chord result must replace the selected set with the chord tones.
 - Keep the Strum Studio route at `#/strum` so it works on static hosting.
-- In the Strum Studio, a progression item lasts one complete bar; pattern steps must align with the selected time signature.
+- In the Strum Studio, a progression item defaults to one complete bar or uses its explicit beat duration. Chord changes may occur inside a bar while the strum pattern continues. Pattern steps must align with the selected time signature.
 - Half-beat mode adds an offbeat `&` step after each numbered beat. It doubles the pattern timing while metronome clicks remain on the numbered beats only.
+- The rhythm grid supports 1, 2, or 4 steps per beat; sixteenth notes count `1 e & a`. Accents are editable per step, and rests let notes ring.
+- Song-inspired presets in `src/data/strumPresets.ts` are simplified practice arrangements. Loading a preset stops playback and replaces the sequence, pattern, tempo, and meter without auto-playing.
 
 ## Audio and attribution
 
