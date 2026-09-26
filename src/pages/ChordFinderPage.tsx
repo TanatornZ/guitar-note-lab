@@ -36,7 +36,7 @@ export function ChordFinderPage() {
         </GuitarNeck>
         <ChordResults selectedNotes={selectedNotes} matches={matches} audioStatus={t(audioStatus)} onToggleNote={toggleNote} onChooseChord={setSelectedNotes} onPlayChord={playSelectedChord} />
       </section>
-      <footer className="mt-5 text-xs text-[#aeb9d2]">Guitar samples: <a className="underline underline-offset-2 hover:text-white" href="https://github.com/nbrosowsky/tonejs-instruments">N. P. Brosowsky / University of Iowa</a> · <a className="underline underline-offset-2 hover:text-white" href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a> · <a href="/audio/guitar/ATTRIBUTION.txt" className="underline underline-offset-2 hover:text-white">{t('finder.audioCredit')}</a></footer>
+      <footer className="mt-5 break-words text-xs text-[#aeb9d2]">Guitar samples: <a className="underline underline-offset-2 hover:text-white" href="https://github.com/nbrosowsky/tonejs-instruments">N. P. Brosowsky / University of Iowa</a> · <a className="underline underline-offset-2 hover:text-white" href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a> · <a href="/audio/guitar/ATTRIBUTION.txt" className="underline underline-offset-2 hover:text-white">{t('finder.audioCredit')}</a></footer>
     </div>
   </main>
 }
