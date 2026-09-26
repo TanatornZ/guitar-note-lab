@@ -28,6 +28,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 - `src/App.tsx` composes the application screen.
 - `src/pages/` contains path-routed screens, including the chord finder and Strum Studio.
 - `src/components/` contains presentational UI components.
+- `src/components/InstallPrompt.tsx` owns native PWA install promotion, iOS instructions, installed-mode detection, and session dismissal.
 - `src/i18n/index.tsx` configures i18next. Translation resources live in `src/i18n/locales/`; use `useI18n().t(...)` for user-facing copy and add both-language entries together.
 - `src/constants/` contains named music, audio, and studio configuration values. Include units in names where relevant (seconds, Hz, dB, BPM, MIDI).
 - `src/data/music.ts` contains note names, standard tuning, and chord shapes.

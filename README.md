@@ -54,7 +54,7 @@ Audio playback uses the browser Web Audio API and begins only after a click or o
 
 ## Install and use offline
 
-Open the deployed HTTPS site once while online, then use the browser's **Install app** or **Add to Home Screen** action. The service worker precaches the interface, both routes, the web app icons, and every recorded guitar sample. After that first successful load, Strum Studio, Chord Finder, and guitar playback remain available offline. New deployments update the cache automatically when the app is opened online again.
+Open the deployed HTTPS site once while online. When the browser reports that the PWA is installable, Chord Canvas shows an in-app suggestion that opens the native installation dialog; iPhone and iPad users receive Safari **Share → Add to Home Screen** guidance. Choosing **Not now** hides the suggestion for the current browsing session. The service worker precaches the interface, both routes, the web app icons, and every recorded guitar sample. After that first successful load, Strum Studio, Chord Finder, and guitar playback remain available offline. New deployments update the cache automatically when the app is opened online again.
 
 ## Stack
 

@@ -1,4 +1,5 @@
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { InstallPrompt } from "./InstallPrompt";
 import { useI18n } from "../i18n";
 
 type Page = "studio" | "finder";
@@ -17,6 +18,7 @@ export function SiteNavbar({ activePage }: SiteNavbarProps) {
     }`;
 
   return (
+    <>
     <header className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4 relative">
       <a
         href="/"
@@ -50,5 +52,7 @@ export function SiteNavbar({ activePage }: SiteNavbarProps) {
         <LanguageSwitcher />
       </div>
     </header>
+    <InstallPrompt />
+    </>
   );
 }

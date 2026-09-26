@@ -6,6 +6,14 @@ export const en = {
   "nav.studio": "Strum Studio",
   "nav.primary": "Primary navigation",
   "nav.backToFinder": "← Chord finder",
+  "pwa.installTitle": "Install Chord Canvas",
+  "pwa.installDescription":
+    "Keep the studio, chord finder, and guitar sounds ready even when you are offline.",
+  "pwa.iosDescription":
+    "In Safari, tap Share, then Add to Home Screen to install Chord Canvas.",
+  "pwa.install": "Install app",
+  "pwa.notNow": "Not now",
+  "pwa.gotIt": "Got it",
   "finder.hero.before": "Find the harmony inside ",
   "finder.hero.highlight": "your notes.",
   "finder.hero.description":

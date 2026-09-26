@@ -8,6 +8,14 @@ export const th: Record<TranslationKey, string> = {
   "nav.studio": "สตูดิโอการตีคอร์ด",
   "nav.primary": "เมนูหลัก",
   "nav.backToFinder": "← ค้นหาคอร์ด",
+  "pwa.installTitle": "ติดตั้ง Chord Canvas",
+  "pwa.installDescription":
+    "เก็บสตูดิโอ ค้นหาคอร์ด และเสียงกีตาร์ไว้ใช้งานได้แม้ไม่มีอินเทอร์เน็ต",
+  "pwa.iosDescription":
+    "ใน Safari ให้แตะแชร์ แล้วเลือกเพิ่มไปยังหน้าจอโฮมเพื่อติดตั้ง Chord Canvas",
+  "pwa.install": "ติดตั้งแอป",
+  "pwa.notNow": "ไว้ภายหลัง",
+  "pwa.gotIt": "เข้าใจแล้ว",
   "finder.hero.before": "ค้นหาความกลมกลืนจาก",
   "finder.hero.highlight": "โน้ตของคุณ",
   "finder.hero.description":
