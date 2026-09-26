@@ -6,6 +6,7 @@ export const th: Record<TranslationKey, string> = {
   "language.thai": "ไทย",
   "nav.finder": "ค้นหาคอร์ด",
   "nav.studio": "สตูดิโอการตีคอร์ด",
+  "nav.primary": "เมนูหลัก",
   "nav.backToFinder": "← ค้นหาคอร์ด",
   "finder.hero.before": "ค้นหาความกลมกลืนจาก",
   "finder.hero.highlight": "โน้ตของคุณ",

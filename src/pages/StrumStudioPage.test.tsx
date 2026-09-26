@@ -27,6 +27,8 @@ describe('StrumStudioPage', () => {
     const user = userEvent.setup()
     render(<StrumStudioPage />)
 
+    expect(screen.getByRole('link', { name: 'Strum Studio' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Chord finder' })).toHaveAttribute('href', '/finder')
     expect(screen.getByText('Your progression')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Clear sequence' }))
     expect(screen.getByText('Choose chords above to create your loop.')).toBeInTheDocument()

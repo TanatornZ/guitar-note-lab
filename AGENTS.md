@@ -26,7 +26,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 ## Project layout
 
 - `src/App.tsx` composes the application screen.
-- `src/pages/` contains hash-routed screens, including the chord finder and Strum Studio.
+- `src/pages/` contains path-routed screens, including the chord finder and Strum Studio.
 - `src/components/` contains presentational UI components.
 - `src/i18n/index.tsx` configures i18next. Translation resources live in `src/i18n/locales/`; use `useI18n().t(...)` for user-facing copy and add both-language entries together.
 - `src/constants/` contains named music, audio, and studio configuration values. Include units in names where relevant (seconds, Hz, dB, BPM, MIDI).
@@ -47,7 +47,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 - Keep musical notes as pitch classes (`0`–`11`) and use `noteName()` for display.
 - A selected pitch class highlights every matching note on the neck.
 - Clicking a chord result must replace the selected set with the chord tones.
-- Keep the Strum Studio route at `#/strum` so it works on static hosting.
+- Keep Strum Studio at the root route (`/`) and the Chord Finder at `/finder`; static hosting must serve `index.html` for both routes.
 - In the Strum Studio, a progression item defaults to one complete bar or uses its explicit beat duration. Chord changes may occur inside a bar while the strum pattern continues. Pattern steps must align with the selected time signature.
 - Half-beat mode adds an offbeat `&` step after each numbered beat. It doubles the pattern timing while metronome clicks remain on the numbered beats only.
 - The rhythm grid supports 1, 2, or 4 steps per beat; sixteenth notes count `1 e & a`. Accents are editable per step, and rests let notes ring.

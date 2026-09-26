@@ -5,7 +5,7 @@ import { STRUM_CHORDS, type StrumChord } from '../data/strumChords'
 import { ANGER_PRESET, defaultPattern, type ProgressionChord, type Subdivision } from '../data/strumPresets'
 import { StrumPatternEditor } from '../components/StrumPatternEditor'
 import { GuitarToneControls } from '../components/GuitarToneControls'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { SiteNavbar } from '../components/SiteNavbar'
 import { useI18n, type TranslationKey } from '../i18n'
 import {
   CHORD_DURATION_BEATS, DEFAULT_PROGRESSION_CHORD_IDS, DEFAULT_SUBDIVISION,
@@ -137,10 +137,7 @@ export function StrumStudioPage() {
 
   return <main className="min-h-screen bg-[#0b1020] bg-[image:radial-gradient(circle_at_12%_0%,#203560_0,transparent_34rem),radial-gradient(circle_at_90%_90%,#17284e_0,transparent_34rem)] px-[clamp(18px,4vw,56px)] pt-7 pb-12 font-sans text-[#eff3ff]">
     <div className="mx-auto max-w-[1320px]">
-      <header className="flex items-center justify-between gap-5">
-        <a href="#/" className="flex items-center gap-3 text-xl font-extrabold tracking-[-0.04em]"><span className="grid size-[38px] place-items-center rounded-xl bg-gradient-to-br from-[#f2ae49] to-[#f8755e] text-[#14203a]">♬</span>Chord Canvas</a>
-        <div className="flex items-center gap-3"><a className="rounded-lg border border-[#d89233] px-3 py-1.5 text-sm font-semibold text-[#f2ae49] transition hover:bg-[#f2ae4918]" href="#/">{t('nav.backToFinder')}</a><LanguageSwitcher /></div>
-      </header>
+      <SiteNavbar activePage="studio" />
 
       <section className="mb-7 mt-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div><div className="font-mono text-xs font-medium tracking-[.11em] text-[#f2ae49] uppercase">{t('studio.eyebrow')}</div><h1 className="mt-2 text-[clamp(2rem,4.2vw,4.2rem)] leading-[1.03] font-extrabold tracking-[-0.065em]">{t('studio.titleBefore')}<em className="not-italic text-[#f2ae49]">{t('studio.titleHighlight')}</em></h1></div>

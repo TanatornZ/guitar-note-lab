@@ -24,7 +24,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. The chord finder is the default page and Strum Studio is available at `#/strum`.
+Open the local URL printed by Vite. Strum Studio is the default page; the Chord Finder is available at `/finder`.
 
 ## Commands
 

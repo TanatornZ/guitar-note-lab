@@ -5,7 +5,7 @@ import { StrumStudioPage } from './pages/StrumStudioPage'
 type Page = 'finder' | 'strum'
 
 function currentPage(): Page {
-  return window.location.hash === '#/strum' ? 'strum' : 'finder'
+  return window.location.pathname === '/finder' ? 'finder' : 'strum'
 }
 
 export default function App() {
@@ -13,8 +13,8 @@ export default function App() {
 
   useEffect(() => {
     const updatePage = () => setPage(currentPage())
-    window.addEventListener('hashchange', updatePage)
-    return () => window.removeEventListener('hashchange', updatePage)
+    window.addEventListener('popstate', updatePage)
+    return () => window.removeEventListener('popstate', updatePage)
   }, [])
 
   return page === 'strum' ? <StrumStudioPage /> : <ChordFinderPage />

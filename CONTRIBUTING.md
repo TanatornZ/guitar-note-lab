@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite. Use `#/` for the chord finder and `#/strum` for Strum Studio. Click a fret or Play to initialize browser audio.
+Open the URL printed by Vite. Use `/` for Strum Studio and `/finder` for the Chord Finder. Click a fret or Play to initialize browser audio.
 
 Use `npm ci` for a repeatable install from `package-lock.json`. When intentionally adding or updating dependencies, use `npm install` and include the resulting lockfile changes for review.
 

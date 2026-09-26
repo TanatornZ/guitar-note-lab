@@ -4,6 +4,7 @@ export const en = {
   "language.thai": "ไทย",
   "nav.finder": "Chord finder",
   "nav.studio": "Strum Studio",
+  "nav.primary": "Primary navigation",
   "nav.backToFinder": "← Chord finder",
   "finder.hero.before": "Find the harmony inside ",
   "finder.hero.highlight": "your notes.",

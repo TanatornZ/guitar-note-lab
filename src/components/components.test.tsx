@@ -9,7 +9,9 @@ describe('finder components', () => {
   it('renders app navigation', () => {
     render(<AppHeader />)
     expect(screen.getByText('Chord Canvas')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Strum Studio' })).toHaveAttribute('href', '#/strum')
+    expect(screen.getByRole('link', { name: 'Strum Studio' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Chord finder' })).toHaveAttribute('href', '/finder')
+    expect(screen.getByRole('link', { name: 'Chord finder' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('renders every named note and reports selections', () => {
