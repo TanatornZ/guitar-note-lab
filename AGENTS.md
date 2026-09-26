@@ -36,6 +36,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 - `src/types/music.ts` contains the shared music-domain TypeScript types.
 - `src/audio/GuitarAudio.ts` loads, pitches, strums, and stops the recorded guitar samples.
 - `public/audio/guitar/` contains source audio assets and their required attribution.
+- `public/site.webmanifest` and the PWA icons describe the installable app; `vite.config.js` generates its offline service worker.
 - `dist/` is generated Vite output; rebuild it rather than editing it manually.
 
 ## UI and state conventions
@@ -65,3 +66,4 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 
 - The hosting configuration in `.openai/hosting.json` publishes `dist/`.
 - Always build before deployment so `dist/` matches the source change.
+- Preserve the PWA navigation fallback and guitar-sample precache when changing routes or asset paths. Service workers require HTTPS in production (localhost is allowed for development).

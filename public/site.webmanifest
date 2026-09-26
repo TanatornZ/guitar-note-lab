@@ -2,16 +2,43 @@
   "name": "Chord Canvas",
   "short_name": "Chord Canvas",
   "description": "Build guitar chord progressions, strum patterns, and explore chord notes.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0b1020",
   "theme_color": "#0b1020",
+  "categories": ["music", "education"],
   "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Strum Studio",
+      "short_name": "Strum",
+      "url": "/"
+    },
+    {
+      "name": "Chord Finder",
+      "short_name": "Finder",
+      "url": "/finder"
     }
   ]
 }

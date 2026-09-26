@@ -14,6 +14,7 @@ Chord Canvas is a browser-based guitar chord finder and strumming practice tool.
 - Adjustable chord duration so chord changes can happen inside a bar
 - A simplified “Don't Look Back in Anger” song-inspired acoustic practice preset
 - English and Thai interface support, with the selected language remembered in the browser
+- Installable Progressive Web App with offline UI, routing, and recorded guitar playback
 
 ## Run locally
 
@@ -51,12 +52,17 @@ To start with the built-in song-inspired practice loop, choose **Load practice p
 
 Audio playback uses the browser Web Audio API and begins only after a click or other user action. The guitar samples come from the `tonejs-instruments` collection by N. P. Brosowsky, based on University of Iowa Musical Instrument Samples, under CC BY 3.0. See [ATTRIBUTION.txt](public/audio/guitar/ATTRIBUTION.txt) for the full attribution.
 
+## Install and use offline
+
+Open the deployed HTTPS site once while online, then use the browser's **Install app** or **Add to Home Screen** action. The service worker precaches the interface, both routes, the web app icons, and every recorded guitar sample. After that first successful load, Strum Studio, Chord Finder, and guitar playback remain available offline. New deployments update the cache automatically when the app is opened online again.
+
 ## Stack
 
 - React + TypeScript + Vite
 - Tailwind CSS
 - MUI Autocomplete
 - i18next + react-i18next
+- vite-plugin-pwa + Workbox
 - Vitest and Testing Library
 - Web Audio API
 

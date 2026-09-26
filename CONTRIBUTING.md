@@ -26,6 +26,7 @@ Use `npm ci` for a repeatable install from `package-lock.json`. When intentional
 | Chord voicings or practice presets | [strumChords.ts](src/data/strumChords.ts), [strumPresets.ts](src/data/strumPresets.ts) |
 | Fretboard and chord matching | [music.ts](src/constants/music.ts), [chords.ts](src/lib/chords.ts) |
 | English/Thai user-facing copy | [locales](src/i18n/locales/) |
+| PWA manifest and offline caching | [site.webmanifest](public/site.webmanifest), [vite.config.js](vite.config.js) |
 | Page behavior | [ChordFinderPage.tsx](src/pages/ChordFinderPage.tsx), [StrumStudioPage.tsx](src/pages/StrumStudioPage.tsx) |
 
 The pages currently create their own audio engine instances. The chord context also contains an engine for its consumers; editing that context alone will not update either page's playback integration.
@@ -51,6 +52,8 @@ npm run build
 Coverage enforces a minimum of 80% lines. Use `npm run test:watch` while developing. Sound changes also require the [manual listening checks](docs/GUITAR_AUDIO.md#manual-listening-checks); mocked Web Audio tests cannot establish whether a guitar sounds natural.
 
 To check production behavior, run `npm run preview` after building. Confirm that the guitar samples load there as well as in development. `dist/` is generated output; do not edit its contents by hand. Building locally does not deploy the website.
+
+For PWA changes, also confirm `dist/sw.js` exists after building and that its precache includes `index.html`, the navigation fallback for `/finder`, icons, and every file in `public/audio/guitar/`. Test offline mode only after one online load has installed the service worker and completed its initial cache.
 
 ## Hand off the work
 
