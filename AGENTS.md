@@ -19,6 +19,10 @@
 
 Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`, and `npm run build`.
 
+## Version control
+
+- Do not create Git commits after making code changes. Leave changes uncommitted for the user to review and commit unless the user explicitly asks for a commit.
+
 ## Project layout
 
 - `src/App.tsx` composes the application screen.
