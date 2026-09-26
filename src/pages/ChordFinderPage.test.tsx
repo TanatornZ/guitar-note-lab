@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const audio = { play: vi.fn(), stop: vi.fn() }
+const audio = { play: vi.fn(), stop: vi.fn(), setTone: vi.fn() }
 
 vi.mock('../audio/GuitarAudio', () => ({
   GuitarAudio: class { constructor() { return audio } },
@@ -36,5 +36,12 @@ describe('ChordFinderPage', () => {
     render(<ChordFinderPage />)
     fireEvent.click(screen.getByRole('button', { name: 'E string, fret 1, F' }))
     expect(audio.play).toHaveBeenCalledWith([41])
+  })
+
+  it('applies the finder tone controls to guitar audio', () => {
+    render(<ChordFinderPage />)
+    fireEvent.change(screen.getByRole('slider', { name: 'Bass' }), { target: { value: '6' } })
+    expect(audio.setTone).toHaveBeenLastCalledWith({ bass: 6, middle: 0, treble: 0 })
+    expect(audio.play).not.toHaveBeenCalled()
   })
 })

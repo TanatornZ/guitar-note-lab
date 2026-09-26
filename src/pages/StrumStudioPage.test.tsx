@@ -7,6 +7,7 @@ const audio = {
   playStrum: vi.fn(),
   playMetronome: vi.fn(),
   stop: vi.fn(),
+  setTone: vi.fn(),
 }
 
 vi.mock('../audio/GuitarAudio', () => ({
@@ -78,6 +79,23 @@ describe('StrumStudioPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Play performance/ }))
     await waitFor(() => expect(audio.prepare).toHaveBeenCalledTimes(1))
     expect(screen.getByRole('button', { name: /Play performance/ })).toBeInTheDocument()
+  })
+
+  it('updates and resets guitar tone during a performance without stopping the loop', async () => {
+    render(<StrumStudioPage />)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Play performance/ })) })
+    fireEvent.change(screen.getByRole('slider', { name: 'Bass' }), { target: { value: '5' } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Middle' }), { target: { value: '-4' } })
+    fireEvent.change(screen.getByRole('slider', { name: 'Treble' }), { target: { value: '7' } })
+    expect(audio.setTone).toHaveBeenLastCalledWith({ bass: 5, middle: -4, treble: 7 })
+    expect(screen.getByText('+5 dB')).toBeInTheDocument()
+    expect(screen.getByText('-4 dB')).toBeInTheDocument()
+    expect(screen.getByRole('slider', { name: 'Treble' })).toHaveAttribute('aria-valuetext', '7 decibels')
+    fireEvent.click(screen.getByRole('button', { name: 'Reset guitar tone' }))
+    expect(audio.setTone).toHaveBeenLastCalledWith({ bass: 0, middle: 0, treble: 0 })
+    for (const name of ['Bass', 'Middle', 'Treble']) expect(screen.getByRole('slider', { name })).toHaveValue('0')
+    expect(audio.stop).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /Stop performance/ })).toBeInTheDocument()
   })
 
   it('loads an editable practice preset without automatically playing', () => {

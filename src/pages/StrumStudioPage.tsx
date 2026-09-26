@@ -4,6 +4,7 @@ import { GuitarAudio } from '../audio/GuitarAudio'
 import { STRUM_CHORDS, type StrumChord } from '../data/strumChords'
 import { ANGER_PRESET, defaultPattern, type ProgressionChord, type Subdivision } from '../data/strumPresets'
 import { StrumPatternEditor } from '../components/StrumPatternEditor'
+import { GuitarToneControls } from '../components/GuitarToneControls'
 
 const TIME_SIGNATURES = [
   { label: '2/4', beats: 2 },
@@ -210,6 +211,7 @@ export function StrumStudioPage() {
             <option value={1}>Quarter notes · 1 2 3 4</option><option value={2}>Eighth notes · 1 & 2 &</option><option value={4}>Sixteenth notes · 1 e & a</option>
           </select>
           <p className="mt-2 text-xs leading-relaxed text-[#aeb9d2]">Metronome clicks stay on numbered beats. Accent buttons control the guitar emphasis. Changing the grid resets the pattern.</p>
+          <GuitarToneControls onChange={(tone) => audio.current?.setTone(tone)} />
           <div className="my-6 h-px bg-[#2b3a5c]" />
           <button className={`w-full cursor-pointer rounded-xl border px-4 py-3 font-extrabold transition ${isPlaying ? 'border-[#a65a55] bg-[#512a2a] text-[#ffd7d3] hover:bg-[#623333]' : 'border-[#d89233] bg-gradient-to-r from-[#f6b955] to-[#ee936a] text-[#1b2030] hover:brightness-105'}`} onClick={isPlaying ? stopPlayback : startPlayback}>{isPlaying ? '■ Stop performance' : '▶ Play performance'}</button>
           <p className="mt-3 text-center text-sm text-[#aeb9d2]" role="status">{audioStatus}</p>

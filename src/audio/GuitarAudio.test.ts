@@ -7,6 +7,7 @@ class FakeParam {
   linearRampToValueAtTime = vi.fn()
   exponentialRampToValueAtTime = vi.fn()
   cancelAndHoldAtTime = vi.fn()
+  setTargetAtTime = vi.fn()
 }
 
 class FakeNode {
@@ -113,6 +114,49 @@ describe('GuitarAudio', () => {
     expect(FakeAudioContext.instance.decodeAudioData).toHaveBeenCalledTimes(11)
     expect(statuses).toContain('Loading acoustic guitar…')
     expect(statuses.at(-1)).toBe('Acoustic guitar ready')
+  })
+
+  it('stores tone before audio starts and connects all three bands to the guitar path', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    guitar.setTone({ bass: 6, middle: -3, treble: 4 })
+    expect(fetch).not.toHaveBeenCalled()
+    await guitar.prepare()
+    const context = FakeAudioContext.instance
+    const [body, bass, middle, treble] = context.filters
+    expect([bass.type, middle.type, treble.type]).toEqual(['lowshelf', 'peaking', 'highshelf'])
+    expect([bass.frequency.value, middle.frequency.value, treble.frequency.value]).toEqual([200, 800, 3200])
+    expect([bass.gain.value, middle.gain.value, treble.gain.value]).toEqual([6, -3, 4])
+    expect(body.connect).toHaveBeenCalledWith(bass)
+    expect(bass.connect).toHaveBeenCalledWith(middle)
+    expect(middle.connect).toHaveBeenCalledWith(treble)
+    const compressor = context.createDynamicsCompressor.mock.results[0].value
+    expect(treble.connect).toHaveBeenCalledWith(compressor)
+    await guitar.playMetronome()
+    expect(context.gains.at(-1)!.connect).toHaveBeenCalledWith(compressor)
+  })
+
+  it('smoothly adjusts and resets ringing guitar tone without restarting notes', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    await guitar.playStrum([48, 52, 55], 'down')
+    const context = FakeAudioContext.instance
+    const filters = context.filters.slice(1, 4)
+    expect(filters.map((filter) => filter.gain.value)).toEqual([0, 0, 0])
+    guitar.setTone({ bass: 5, middle: -2, treble: 8 })
+    filters.forEach((filter, index) => {
+      expect(filter.gain.cancelAndHoldAtTime).toHaveBeenCalledWith(4)
+      expect(filter.gain.setTargetAtTime).toHaveBeenLastCalledWith([5, -2, 8][index], 4, 0.015)
+    })
+    expect(context.sources).toHaveLength(3)
+    expect(context.sources.every((source) => source.stop.mock.calls.length === 1)).toBe(true)
+    guitar.setTone({ bass: 0, middle: 0, treble: 0 })
+    filters.forEach((filter) => expect(filter.gain.setTargetAtTime).toHaveBeenLastCalledWith(0, 4, 0.015))
+  })
+
+  it('clamps excessive EQ gain and replaces non-finite values with neutral gain', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    guitar.setTone({ bass: 100, middle: -100, treble: NaN })
+    await guitar.prepare()
+    expect(FakeAudioContext.instance.filters.slice(1, 4).map((filter) => filter.gain.value)).toEqual([12, -12, 0])
   })
 
   it('plays individual notes and direction-aware strums using sample voices', async () => {

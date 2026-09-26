@@ -49,6 +49,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 ## Audio and attribution
 
 - Audio setup must occur after a user action; browsers block automatic Web Audio playback.
+- Bass, middle, and treble controls are shared UI in `GuitarToneControls`; use `GuitarAudio.setTone` for smooth live EQ. Neutral is 0 dB; clamp bands to ±12 dB and keep the metronome outside the EQ path.
 - Keep sample requests rooted at `/audio/guitar/` so they work in Vite development and production.
 - Do not remove or alter `public/audio/guitar/ATTRIBUTION.txt` without replacing the samples and updating the visible credits.
 

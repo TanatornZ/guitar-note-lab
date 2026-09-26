@@ -4,6 +4,7 @@ import { AppHeader } from '../components/AppHeader'
 import { ChordResults } from '../components/ChordResults'
 import { GuitarNeck } from '../components/GuitarNeck'
 import { NotePicker } from '../components/NotePicker'
+import { GuitarToneControls } from '../components/GuitarToneControls'
 import { findChordMatches } from '../lib/chords'
 import type { PitchClass } from '../types/music'
 
@@ -28,6 +29,7 @@ export function ChordFinderPage() {
       <section className="grid gap-[18px] min-[900px]:grid-cols-[minmax(0,1.55fr)_minmax(330px,.8fr)]" aria-label="Chord explorer">
         <GuitarNeck selectedNotes={selectedNotes} reversed={reversed} onReverse={() => setReversed((value) => !value)} onClear={clearSelection} onFretClick={toggleNote}>
           <NotePicker selectedNotes={selectedNotes} onToggle={toggleNote} />
+          <GuitarToneControls onChange={(tone) => audio.current?.setTone(tone)} />
         </GuitarNeck>
         <ChordResults selectedNotes={selectedNotes} matches={matches} audioStatus={audioStatus} onToggleNote={toggleNote} onChooseChord={setSelectedNotes} onPlayChord={playSelectedChord} />
       </section>

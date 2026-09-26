@@ -1,3 +1,5 @@
+import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, type GuitarTone } from '../data/guitarTone'
+
 type StatusHandler = (status: string) => void
 
 type Voice = {
@@ -26,10 +28,25 @@ export class GuitarAudio {
   private output?: DynamicsCompressorNode
   private loading?: Promise<void>
   private playbackGeneration = 0
+  private tone: GuitarTone = { ...DEFAULT_GUITAR_TONE }
+  private readonly toneFilters = new Map<keyof GuitarTone, BiquadFilterNode>()
   private readonly buffers = new Map<number, AudioBuffer>()
   private readonly voices = new Set<Voice>()
 
   constructor(private readonly onStatus: StatusHandler) {}
+
+  setTone(tone: GuitarTone): void {
+    for (const { key } of GUITAR_TONE_BANDS) {
+      const value = Number.isFinite(tone[key]) ? Math.max(-TONE_LIMIT, Math.min(TONE_LIMIT, tone[key])) : 0
+      this.tone[key] = value
+      const filter = this.toneFilters.get(key)
+      if (filter && this.context) {
+        // Smooth live slider changes, including the sound of notes already ringing.
+        filter.gain.cancelAndHoldAtTime(this.context.currentTime)
+        filter.gain.setTargetAtTime(value, this.context.currentTime, 0.015)
+      }
+    }
+  }
 
   private async setup(): Promise<void> {
     if (!this.context) {
@@ -60,8 +77,20 @@ export class GuitarAudio {
       roomGain.gain.value = 0.085
 
       this.master.connect(body)
-      body.connect(compressor)
-      body.connect(room).connect(roomGain).connect(compressor)
+      let guitarOutput = body
+      for (const { key, frequency, type } of GUITAR_TONE_BANDS) {
+        const filter = this.context.createBiquadFilter()
+        filter.type = type
+        filter.frequency.value = frequency
+        filter.Q.value = 0.8
+        filter.gain.value = this.tone[key]
+        this.toneFilters.set(key, filter)
+        guitarOutput.connect(filter)
+        guitarOutput = filter
+      }
+      // Shape both direct guitar and room sound; the metronome bypasses these filters.
+      guitarOutput.connect(compressor)
+      guitarOutput.connect(room).connect(roomGain).connect(compressor)
       compressor.connect(this.context.destination)
     }
 
