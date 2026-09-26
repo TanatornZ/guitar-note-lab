@@ -1,5 +1,6 @@
 // Equal-tempered pitch conversion and the register used by chord preview playback.
 export const SEMITONES_PER_OCTAVE = 12
+export const CENTS_PER_SEMITONE = 100
 export const OCTAVE_FREQUENCY_RATIO = 2
 export const CHORD_PREVIEW_BASE_MIDI = 48 // C3
 export const PITCH_NAME_WRAP_OFFSET = 120 // Preserve negative-pitch wrapping across ten octaves.

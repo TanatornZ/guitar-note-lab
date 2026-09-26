@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GuitarAudio } from './GuitarAudio'
+import { ANGER_PRESET } from '../data/strumPresets'
 
 class FakeParam {
   value = 0
@@ -82,7 +83,13 @@ class FakeAudioContext {
     this.oscillators.push(oscillator)
     return oscillator
   })
-  decodeAudioData = vi.fn().mockImplementation(async () => ({ duration: 1.25 }))
+  decodeAudioData = vi.fn().mockImplementation(async () => ({
+    duration: 1.25,
+    sampleRate: 1000,
+    length: 1250,
+    numberOfChannels: 1,
+    getChannelData: () => new Float32Array(1250),
+  }))
 
   constructor() { FakeAudioContext.instance = this }
 }
@@ -114,6 +121,85 @@ describe('GuitarAudio', () => {
     expect(FakeAudioContext.instance.decodeAudioData).toHaveBeenCalledTimes(11)
     expect(statuses).toContain('audio.loading')
     expect(statuses.at(-1)).toBe('audio.ready')
+  })
+
+  it.each(['finder', 'studio'] as const)('anchors ringing notes before a repeated %s chord fades', async (page) => {
+    const guitar = new GuitarAudio(() => undefined)
+    const play = () => page === 'finder' ? guitar.play([48, 52, 55], true) : guitar.playStrum([48, 52, 55], 'down')
+    await play()
+    const context = FakeAudioContext.instance
+    const ringing = context.sources.slice()
+    context.currentTime += 0.3
+    await play()
+    ringing.forEach((source, index) => {
+      const filter = source.connect.mock.results[0].value as FakeFilter
+      const gain = filter.connect.mock.results[0].value as FakeGain
+      const volume = gain.gain.linearRampToValueAtTime.mock.calls[0][0]
+      const nextAttack = context.sources[index + ringing.length].start.mock.calls[0][0]
+      expect(gain.gain.cancelAndHoldAtTime).toHaveBeenLastCalledWith(nextAttack)
+      expect(gain.gain.setValueAtTime).toHaveBeenLastCalledWith(volume, nextAttack)
+      expect(gain.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, nextAttack + 0.22)
+    })
+  })
+
+  it('de-clicks every attack in the full Anger preset without adding sounds on rests', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    await guitar.prepare()
+    const context = FakeAudioContext.instance
+    let step = 0
+    let strokes = 0
+    for (const chord of ANGER_PRESET.progression) {
+      for (let index = 0; index < chord.beats! * ANGER_PRESET.subdivisions; index++, step++) {
+        context.currentTime = 4 + step * 60 / ANGER_PRESET.bpm / ANGER_PRESET.subdivisions
+        const pattern = ANGER_PRESET.pattern[step % ANGER_PRESET.pattern.length]
+        if (pattern.direction === 'rest') continue
+        await guitar.playStrum(chord.midis, pattern.direction, pattern.accent)
+        strokes++
+      }
+    }
+    expect(strokes).toBe(48)
+    expect(context.sources).toHaveLength(231)
+    expect(context.oscillators).toHaveLength(0)
+    context.sources.forEach((source) => {
+      const when = source.start.mock.calls[0][0]
+      const filter = source.connect.mock.results[0].value as FakeFilter
+      const gain = filter.connect.mock.results[0].value as FakeGain
+      const opening = filter.frequency.exponentialRampToValueAtTime.mock.calls[0]
+      expect(filter.frequency.setValueAtTime.mock.calls[0][0]).toBeCloseTo(opening[0] * 0.35)
+      expect(opening[1] - when).toBeCloseTo(0.025)
+      expect(gain.gain.value).toBe(0)
+      expect(gain.gain.linearRampToValueAtTime.mock.calls[0][1] - when).toBeCloseTo(0.009)
+      expect(source.stop.mock.calls[0][0] - when).toBeCloseTo(1.25 / source.playbackRate.value + 0.01)
+    })
+    guitar.stop()
+    expect(context.sources.every(source => Math.abs(source.stop.mock.lastCall![0] - context.currentTime - 0.03) < 0.0001)).toBe(true)
+  })
+
+  it('skips the noisy lead-in on every strike and preserves the transposed tail', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    const pending = guitar.prepare()
+    const context = FakeAudioContext.instance
+    const data = new Float32Array(1250).fill(0.001)
+    data.fill(0.5, 30)
+    context.decodeAudioData.mockImplementation(async () => ({
+      duration: 1.25, sampleRate: 1000, length: data.length, numberOfChannels: 1,
+      getChannelData: () => data,
+    }))
+    await pending
+    await guitar.playStrum([40, 41], 'down')
+    context.currentTime += 0.3
+    await guitar.playStrum([40, 41], 'up')
+    await guitar.play([40])
+    for (const source of context.sources) {
+      const [when, offset] = source.start.mock.calls[0]
+      expect(offset).toBeCloseTo(0.028)
+      expect(source.stop.mock.calls[0][0]).toBeCloseTo(when + (1.25 - offset) / source.playbackRate.value + 0.01)
+      const gain = source.connect.mock.results[0].value.connect.mock.results[0].value as FakeGain
+      expect(gain.gain.setValueAtTime).toHaveBeenCalledWith(0, when)
+      expect(gain.gain.value).toBe(0)
+      expect(gain.gain.linearRampToValueAtTime.mock.calls[0][1]).toBeCloseTo(when + 0.009)
+    }
+    expect(context.decodeAudioData).toHaveBeenCalledTimes(11)
   })
 
   it('stores tone before audio starts and connects all three bands to the guitar path', async () => {
@@ -231,7 +317,7 @@ describe('GuitarAudio', () => {
     expect(down.slice(0, 2).every((source) => source.stop.mock.calls.length === 1)).toBe(true)
     expect(down.slice(2).every((source) => source.stop.mock.calls.length === 2)).toBe(true)
     down.slice(2).reverse().forEach((source, index) => {
-      expect(source.stop.mock.lastCall![0]).toBeCloseTo(upTimes[index] + 0.655)
+      expect(source.stop.mock.lastCall![0]).toBeCloseTo(upTimes[index] + 0.225)
     })
   })
 
@@ -261,7 +347,64 @@ describe('GuitarAudio', () => {
     const accented = context.gains.at(-1)!.gain.linearRampToValueAtTime.mock.calls[0][0]
     expect(accented).toBeGreaterThan(normal)
     const frequency = context.filters.at(-1)!.frequency
-    expect(frequency.exponentialRampToValueAtTime.mock.calls[0][0]).toBeLessThan(frequency.setValueAtTime.mock.calls[0][0])
+    const [opening, pick, sustain] = frequency.exponentialRampToValueAtTime.mock.calls
+    expect(opening[1]).toBeCloseTo(4.4 + 0.012 + 0.025)
+    expect(frequency.setValueAtTime.mock.calls[0][0]).toBeCloseTo(opening[0] * 0.35)
+    expect(pick[0]).toBeLessThan(opening[0])
+    expect(pick[1]).toBeCloseTo(4.4 + 0.012 + 0.085)
+    expect(sustain[1]).toBeCloseTo(4.4 + 0.012 + 1.8)
+    expect(sustain[0]).toBeLessThan(pick[0])
+  })
+
+  it('accelerates the pick sweep and makes accented strokes tighter and brighter', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    const chord = [40, 45, 52, 55, 59, 65]
+    await guitar.playStrum(chord, 'down')
+    const context = FakeAudioContext.instance
+    const times = context.sources.map((source) => source.start.mock.calls[0][0] as number)
+    const gaps = times.slice(1).map((time, index) => time - times[index])
+    expect(gaps.every((gap, index) => index === 0 || gap < gaps[index - 1])).toBe(true)
+    expect(times.at(-1)! - times[0]).toBeGreaterThan(0.025)
+    expect(times.at(-1)! - times[0]).toBeLessThan(0.06)
+    const normalBrightness = context.filters.at(-6)!.frequency.setValueAtTime.mock.calls[0][0]
+    expect(context.filters.at(-1)!.frequency.setValueAtTime.mock.calls[0][0]).toBeLessThan(normalBrightness)
+
+    context.currentTime += 0.3
+    await guitar.playStrum(chord, 'down', true)
+    const accentTimes = context.sources.slice(6).map((source) => source.start.mock.calls[0][0] as number)
+    expect(accentTimes.at(-1)! - accentTimes[0]).toBeLessThan(times.at(-1)! - times[0])
+    expect(context.filters.at(-6)!.frequency.setValueAtTime.mock.calls[0][0]).toBeGreaterThan(normalBrightness)
+
+    context.currentTime += 0.3
+    await guitar.playStrum(chord, 'up')
+    expect(context.filters.at(-4)!.frequency.setValueAtTime.mock.calls[0][0]).toBeLessThan(normalBrightness)
+  })
+
+  it('uses gentle compression and a restrained room level to preserve pick dynamics', async () => {
+    const guitar = new GuitarAudio(() => undefined)
+    await guitar.prepare()
+    const context = FakeAudioContext.instance
+    const compressor = context.createDynamicsCompressor.mock.results[0].value
+    expect(compressor.ratio.value).toBe(2.5)
+    expect(compressor.attack.value).toBe(0.018)
+    expect(context.gains[1].gain.value).toBe(0.045)
+    expect(context.filters[0].frequency.value).toBe(155)
+  })
+
+  it.each([0, 0.999])('keeps randomized sweeps ordered and accounts for detune in the natural tail (%s)', async (random) => {
+    const guitar = new GuitarAudio(() => undefined)
+    await guitar.prepare()
+    vi.mocked(Math.random).mockReturnValue(random)
+    await guitar.playStrum([40, 45, 52, 55, 59, 65], 'down')
+    const context = FakeAudioContext.instance
+    const times = context.sources.map((source) => source.start.mock.calls[0][0] as number)
+    expect(times.every((time, index) => index === 0 || time > times[index - 1])).toBe(true)
+    expect(times.at(-1)! - times[0]).toBeLessThan(0.07)
+    for (const source of context.sources) {
+      expect(Math.abs(source.detune.value)).toBeLessThanOrEqual(0.5)
+      const rate = source.playbackRate.value * 2 ** (source.detune.value / 1200)
+      expect(source.stop.mock.lastCall![0] - source.start.mock.calls[0][0]).toBeCloseTo(1.25 / rate + 0.01, 8)
+    }
   })
 
   it('cancels playback requested before Stop, even if samples are still loading', async () => {
@@ -302,7 +445,8 @@ describe('GuitarAudio', () => {
     expect(first.stop).toHaveBeenCalledTimes(1)
     expect(first.stop.mock.lastCall![0]).toBe(naturalEnd)
     await guitar.playStrum([48], 'up')
-    expect(first.stop.mock.lastCall![0]).toBeGreaterThan(context.currentTime + 0.6)
+    expect(first.stop.mock.lastCall![0]).toBeGreaterThan(context.currentTime + 0.2)
+    expect(first.stop.mock.lastCall![0]).toBeLessThan(context.currentTime + 0.3)
     guitar.stop()
     context.sources.forEach((source) => {
       expect(source.stop.mock.lastCall![0]).toBeCloseTo(context.currentTime + 0.03)
