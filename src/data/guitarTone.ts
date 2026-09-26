@@ -12,7 +12,7 @@ export const TONE_STEP_DB = 1
 export const TONE_SMOOTHING_SECONDS = 0.015
 export const TONE_FILTER_Q = 0.8
 export const GUITAR_TONE_BANDS = [
-  { key: 'bass', label: 'Bass', description: 'Warmth and low strings', frequency: 200, type: 'lowshelf' },
-  { key: 'middle', label: 'Middle', description: 'Body and presence', frequency: 800, type: 'peaking' },
-  { key: 'treble', label: 'Treble', description: 'Brightness and pick detail', frequency: 3200, type: 'highshelf' },
+  { key: 'bass', frequency: 200, type: 'lowshelf' },
+  { key: 'middle', frequency: 800, type: 'peaking' },
+  { key: 'treble', frequency: 3200, type: 'highshelf' },
 ] as const

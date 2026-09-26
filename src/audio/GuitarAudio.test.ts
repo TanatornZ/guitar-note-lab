@@ -112,8 +112,8 @@ describe('GuitarAudio', () => {
 
     expect(fetch).toHaveBeenCalledTimes(11)
     expect(FakeAudioContext.instance.decodeAudioData).toHaveBeenCalledTimes(11)
-    expect(statuses).toContain('Loading acoustic guitar…')
-    expect(statuses.at(-1)).toBe('Acoustic guitar ready')
+    expect(statuses).toContain('audio.loading')
+    expect(statuses.at(-1)).toBe('audio.ready')
   })
 
   it('stores tone before audio starts and connects all three bands to the guitar path', async () => {
@@ -168,8 +168,8 @@ describe('GuitarAudio', () => {
     const sources = FakeAudioContext.instance.sources
     expect(sources).toHaveLength(8)
     expect(sources.every((source) => source.start.mock.calls.length === 1 && source.stop.mock.calls.length >= 1)).toBe(true)
-    expect(statuses).toContain('Downstroke playing')
-    expect(statuses).toContain('Upstroke playing')
+    expect(statuses).toContain('audio.downstroke')
+    expect(statuses).toContain('audio.upstroke')
     sources[0].onended?.()
     expect(sources[0].disconnect).toHaveBeenCalled()
   })
@@ -190,13 +190,13 @@ describe('GuitarAudio', () => {
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: undefined })
     const unsupported = new GuitarAudio((status) => statuses.push(status))
     await expect(unsupported.prepare()).resolves.toBe(false)
-    expect(statuses.at(-1)).toBe('Sound could not load. Click Play to retry.')
+    expect(statuses.at(-1)).toBe('audio.loadFailedRetry')
 
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: FakeAudioContext })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, arrayBuffer: vi.fn() }))
     const unavailable = new GuitarAudio((status) => statuses.push(status))
     await unavailable.play([48])
-    expect(statuses).toContain('Sound could not load. Click a note to retry.')
+    expect(statuses).toContain('audio.loadFailedNote')
   })
 
   it('can stop safely before an audio context exists', () => {

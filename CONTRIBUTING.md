@@ -25,6 +25,7 @@ Use `npm ci` for a repeatable install from `package-lock.json`. When intentional
 | Tempo, rhythm grids, and duration choices | [studio.ts](src/constants/studio.ts) |
 | Chord voicings or practice presets | [strumChords.ts](src/data/strumChords.ts), [strumPresets.ts](src/data/strumPresets.ts) |
 | Fretboard and chord matching | [music.ts](src/constants/music.ts), [chords.ts](src/lib/chords.ts) |
+| English/Thai user-facing copy | [locales](src/i18n/locales/) |
 | Page behavior | [ChordFinderPage.tsx](src/pages/ChordFinderPage.tsx), [StrumStudioPage.tsx](src/pages/StrumStudioPage.tsx) |
 
 The pages currently create their own audio engine instances. The chord context also contains an engine for its consumers; editing that context alone will not update either page's playback integration.
@@ -36,6 +37,7 @@ The pages currently create their own audio engine instances. The chord context a
 3. Preserve the recorded-sample attribution and user-triggered audio initialization. Keep the UI aligned with the existing Tailwind/MUI design.
 4. Update relevant behavior tests when implementation changes. Keep expected outcomes independent enough to catch regressions; do not make a test pass just by repeating the changed constant in its expectation.
 5. Update documentation when defaults, units, sample sources, public methods, or playback behavior change.
+6. For a user-facing string, add matching English and Thai resources in `src/i18n/locales/` and use `useI18n().t(...)`. Keep chord symbols and note names recognizable across both languages.
 
 ## Verify before handing off
 

@@ -39,6 +39,6 @@ export function defaultPattern(beats: number, subdivisions: Subdivision): StrumS
 }
 
 export function stepLabel(index: number, subdivisions: Subdivision): string {
-  if (index % subdivisions === 0) return `Beat ${Math.floor(index / subdivisions) + 1}`
+  if (index % subdivisions === 0) return String(Math.floor(index / subdivisions) + 1)
   return subdivisions === SUBDIVISIONS.eighth ? '&' : SIXTEENTH_STEP_LABELS[index % SUBDIVISIONS.sixteenth]
 }

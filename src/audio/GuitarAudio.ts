@@ -1,8 +1,9 @@
 import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, TONE_FILTER_Q, TONE_SMOOTHING_SECONDS, NEUTRAL_TONE_DB, type GuitarTone } from '../data/guitarTone'
 import { GUITAR_OUTPUT, METRONOME, NOTE_PLAYBACK, RANDOM_MIDPOINT, ROOM_REVERB, STRUM_PLAYBACK } from '../constants/audio'
 import { OCTAVE_FREQUENCY_RATIO, SEMITONES_PER_OCTAVE } from '../constants/music'
+import type { TranslationKey } from '../i18n'
 
-type StatusHandler = (status: string) => void
+type StatusHandler = (status: TranslationKey) => void
 
 type Voice = {
   source: AudioBufferSourceNode
@@ -98,7 +99,7 @@ export class GuitarAudio {
 
     await this.context.resume()
     if (!this.loading) {
-      this.onStatus('Loading acoustic guitar…')
+      this.onStatus('audio.loading')
       this.loading = Promise.all(SAMPLES.map(async ([midi, file]) => {
         const response = await fetch(`/audio/guitar/${file}.mp3`)
         if (!response.ok) throw new Error('Guitar audio could not load.')
@@ -116,10 +117,10 @@ export class GuitarAudio {
     try {
       await this.setup()
       if (generation !== this.playbackGeneration) return false
-      this.onStatus('Acoustic guitar ready')
+      this.onStatus('audio.ready')
       return true
     } catch (error) {
-      this.onStatus('Sound could not load. Click Play to retry.')
+      this.onStatus('audio.loadFailedRetry')
       console.warn('Guitar playback:', error)
       return false
     }
@@ -139,9 +140,9 @@ export class GuitarAudio {
           detune: (Math.random() - RANDOM_MIDPOINT) * NOTE_PLAYBACK.detuneRangeCents,
         }))
       }
-      this.onStatus('Acoustic guitar ready')
+      this.onStatus('audio.ready')
     } catch (error) {
-      this.onStatus('Sound could not load. Click a note to retry.')
+      this.onStatus('audio.loadFailedNote')
       console.warn('Guitar playback:', error)
     }
   }
@@ -152,9 +153,9 @@ export class GuitarAudio {
       await this.setup()
       if (generation !== this.playbackGeneration) return
       this.scheduleStrum(midis, direction, accent)
-      this.onStatus(`${direction === 'down' ? 'Down' : 'Up'}stroke playing`)
+      this.onStatus(direction === 'down' ? 'audio.downstroke' : 'audio.upstroke')
     } catch (error) {
-      this.onStatus('Sound could not load. Click Play to retry.')
+      this.onStatus('audio.loadFailedRetry')
       console.warn('Guitar playback:', error)
     }
   }

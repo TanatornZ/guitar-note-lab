@@ -13,6 +13,7 @@ Chord Canvas is a browser-based guitar chord finder and strumming practice tool.
 - Quarter-, eighth-, and sixteenth-note rhythm grids
 - Adjustable chord duration so chord changes can happen inside a bar
 - A simplified “Don't Look Back in Anger” song-inspired acoustic practice preset
+- English and Thai interface support, with the selected language remembered in the browser
 
 ## Run locally
 
@@ -55,6 +56,7 @@ Audio playback uses the browser Web Audio API and begins only after a click or o
 - React + TypeScript + Vite
 - Tailwind CSS
 - MUI Autocomplete
+- i18next + react-i18next
 - Vitest and Testing Library
 - Web Audio API
 
@@ -66,6 +68,7 @@ src/components/   Reusable interface components
 src/constants/    Named audio, music, and studio settings
 src/context/      Shared chord-selection state
 src/data/         Notes, chord voicings, presets, and tone definitions
+src/i18n/         i18next resources and language helpers
 src/lib/          Chord matching logic
 src/pages/        Chord Finder and Strum Studio screens
 public/audio/     Guitar sample files and attribution
@@ -91,3 +94,9 @@ Behavior-controlling values have descriptive names and are grouped by purpose:
 Names include units where needed, such as `repeatedStringReleaseSeconds`, `bodyFrequencyHz`, and `CHORD_PREVIEW_BASE_MIDI`. For example, adjust `TEMPO_BPM.maximum` to change both the tempo slider limit and its displayed label. Fretboard notes and columns share `GUITAR_FRET_COUNT`.
 
 Keep distinct meanings separate even when their values match: twelve frets and twelve semitones per octave are independent settings. Musical datasets, normal index/count arithmetic, and Tailwind styling remain literal where their meaning is already clear.
+
+## Languages
+
+Use the **English / ไทย** switch in the header to choose the interface language. The selection is stored in the browser under `chord-canvas-language`; Thai is selected automatically for a Thai browser locale when no saved choice exists.
+
+Translations are managed with `i18next` and `react-i18next`; setup is in [src/i18n/index.tsx](src/i18n/index.tsx), while the separate [English](src/i18n/locales/en.ts) and [Thai](src/i18n/locales/th.ts) resources live in `src/i18n/locales/`. Add every new user-facing string to both files, use `t('namespace.key')` in components, and keep music symbols, chord names, and technical labels unchanged when that makes them easier to recognize.
