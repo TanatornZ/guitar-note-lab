@@ -16,7 +16,7 @@ Chord Canvas is a browser-based guitar chord finder and strumming practice tool.
 
 ## Run locally
 
-Use Node.js 20 or later.
+Use Node.js 24.x with npm for compatibility with the current development and test dependencies.
 
 ```bash
 npm install
@@ -72,6 +72,10 @@ public/audio/     Guitar sample files and attribution
 ```
 
 For contributor conventions and verification requirements, see [AGENTS.md](AGENTS.md).
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for developer setup, the change workflow, and required checks. The [guitar audio development guide](docs/GUITAR_AUDIO.md) explains the signal path, sound settings, sustain, strumming, EQ, sample replacement, and listening checks for future audio work.
 
 ## Maintaining numeric settings
 

@@ -54,6 +54,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 
 ## Audio and attribution
 
+- Before changing guitar sound, read [docs/GUITAR_AUDIO.md](docs/GUITAR_AUDIO.md) for the audio graph, tuning settings, lifecycle constraints, and listening checks. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow. Keep these documents aligned when audio defaults or behavior change.
 - Audio setup must occur after a user action; browsers block automatic Web Audio playback.
 - Bass, middle, and treble controls are shared UI in `GuitarToneControls`; use `GuitarAudio.setTone` for smooth live EQ. Neutral is 0 dB; clamp bands to ±12 dB and keep the metronome outside the EQ path.
 - Keep sample requests rooted at `/audio/guitar/` so they work in Vite development and production.
