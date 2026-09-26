@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { STANDARD_TUNING, noteName } from '../data/music'
 import type { PitchClass } from '../types/music'
+import { FIRST_PLAYABLE_FRET, GUITAR_FRET_COUNT, SEMITONES_PER_OCTAVE } from '../constants/music'
+
+// Share the fret count between notes, labels, and the CSS grid.
+const FRET_GRID_COLUMNS = `48px repeat(${GUITAR_FRET_COUNT}, minmax(0, 1fr))`
 
 interface GuitarNeckProps {
   selectedNotes: PitchClass[]
@@ -24,12 +28,12 @@ export function GuitarNeck({ selectedNotes, reversed, onReverse, onClear, onFret
     </div>
     <div className="mt-4 overflow-x-auto">
       <div className="min-w-[680px] overflow-hidden rounded-[13px] border border-[#966039] bg-[#51311d]">
-        {strings.map((string) => <div className="grid h-[49px] grid-cols-[48px_repeat(12,minmax(0,1fr))]" key={string.name}>
+        {strings.map((string) => <div className="grid h-[49px]" style={{ gridTemplateColumns: FRET_GRID_COLUMNS }} key={string.name}>
           <span className="grid place-items-center border-r-2 border-[#d6a46d] bg-[#17100a] font-mono text-xs font-medium text-[#d9b488]">{string.name}</span>
-          {Array.from({ length: 12 }, (_, index) => {
-            const fret = index + 1
+          {Array.from({ length: GUITAR_FRET_COUNT }, (_, index) => {
+            const fret = index + FIRST_PLAYABLE_FRET
             const midi = string.midi + fret
-            const pitch = midi % 12
+            const pitch = midi % SEMITONES_PER_OCTAVE
             const selected = selectedNotes.includes(pitch)
             return <button
               className={`cursor-pointer border-r-2 border-[#c3a3749c] bg-[linear-gradient(transparent_48%,#ded0ae_48%,#ded0ae_52%,transparent_52%)] text-[#f8ead3] ${selected ? 'font-semibold' : ''}`}
@@ -40,7 +44,7 @@ export function GuitarNeck({ selectedNotes, reversed, onReverse, onClear, onFret
           })}
         </div>)}
       </div>
-      <div className="mt-2 grid min-w-[680px] grid-cols-[48px_repeat(12,minmax(0,1fr))] text-center font-mono text-[.65rem] font-medium text-[#8d9abb]"><span />{Array.from({ length: 12 }, (_, index) => <span key={index}>{index + 1}</span>)}</div>
+      <div className="mt-2 grid min-w-[680px] text-center font-mono text-[.65rem] font-medium text-[#8d9abb]" style={{ gridTemplateColumns: FRET_GRID_COLUMNS }}><span />{Array.from({ length: GUITAR_FRET_COUNT }, (_, index) => <span key={index}>{index + FIRST_PLAYABLE_FRET}</span>)}</div>
     </div>
     {children}
   </section>

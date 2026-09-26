@@ -1,4 +1,6 @@
-import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, type GuitarTone } from '../data/guitarTone'
+import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, TONE_FILTER_Q, TONE_SMOOTHING_SECONDS, NEUTRAL_TONE_DB, type GuitarTone } from '../data/guitarTone'
+import { GUITAR_OUTPUT, METRONOME, NOTE_PLAYBACK, RANDOM_MIDPOINT, ROOM_REVERB, STRUM_PLAYBACK } from '../constants/audio'
+import { OCTAVE_FREQUENCY_RATIO, SEMITONES_PER_OCTAVE } from '../constants/music'
 
 type StatusHandler = (status: string) => void
 
@@ -37,13 +39,13 @@ export class GuitarAudio {
 
   setTone(tone: GuitarTone): void {
     for (const { key } of GUITAR_TONE_BANDS) {
-      const value = Number.isFinite(tone[key]) ? Math.max(-TONE_LIMIT, Math.min(TONE_LIMIT, tone[key])) : 0
+      const value = Number.isFinite(tone[key]) ? Math.max(-TONE_LIMIT, Math.min(TONE_LIMIT, tone[key])) : NEUTRAL_TONE_DB
       this.tone[key] = value
       const filter = this.toneFilters.get(key)
       if (filter && this.context) {
         // Smooth live slider changes, including the sound of notes already ringing.
         filter.gain.cancelAndHoldAtTime(this.context.currentTime)
-        filter.gain.setTargetAtTime(value, this.context.currentTime, 0.015)
+        filter.gain.setTargetAtTime(value, this.context.currentTime, TONE_SMOOTHING_SECONDS)
       }
     }
   }
@@ -55,26 +57,26 @@ export class GuitarAudio {
 
       this.context = new AudioContextConstructor()
       this.master = this.context.createGain()
-      this.master.gain.value = 0.62
+      this.master.gain.value = GUITAR_OUTPUT.masterGain
 
       const body = this.context.createBiquadFilter()
       body.type = 'peaking'
-      body.frequency.value = 185
-      body.Q.value = 0.8
-      body.gain.value = 1.8
+      body.frequency.value = GUITAR_OUTPUT.bodyFrequencyHz
+      body.Q.value = GUITAR_OUTPUT.bodyQ
+      body.gain.value = GUITAR_OUTPUT.bodyGainDb
 
       const compressor = this.context.createDynamicsCompressor()
-      compressor.threshold.value = -12
-      compressor.knee.value = 12
-      compressor.ratio.value = 4
-      compressor.attack.value = 0.003
-      compressor.release.value = 0.2
+      compressor.threshold.value = GUITAR_OUTPUT.compressorThresholdDb
+      compressor.knee.value = GUITAR_OUTPUT.compressorKneeDb
+      compressor.ratio.value = GUITAR_OUTPUT.compressorRatio
+      compressor.attack.value = GUITAR_OUTPUT.compressorAttackSeconds
+      compressor.release.value = GUITAR_OUTPUT.compressorReleaseSeconds
       this.output = compressor
 
       const room = this.context.createConvolver()
-      room.buffer = this.createRoomImpulse(0.72, 2.8)
+      room.buffer = this.createRoomImpulse(ROOM_REVERB.durationSeconds, ROOM_REVERB.decayExponent)
       const roomGain = this.context.createGain()
-      roomGain.gain.value = 0.085
+      roomGain.gain.value = ROOM_REVERB.wetGain
 
       this.master.connect(body)
       let guitarOutput = body
@@ -82,7 +84,7 @@ export class GuitarAudio {
         const filter = this.context.createBiquadFilter()
         filter.type = type
         filter.frequency.value = frequency
-        filter.Q.value = 0.8
+        filter.Q.value = TONE_FILTER_Q
         filter.gain.value = this.tone[key]
         this.toneFilters.set(key, filter)
         guitarOutput.connect(filter)
@@ -131,8 +133,11 @@ export class GuitarAudio {
       if (strum) {
         this.scheduleStrum(midis, 'down')
       } else {
-        const start = this.context!.currentTime + 0.015
-        midis.forEach((midi) => this.schedule(midi, start, midis.length, { velocity: 0.96 + Math.random() * 0.08, detune: (Math.random() - 0.5) * 3 }))
+        const start = this.context!.currentTime + NOTE_PLAYBACK.startDelaySeconds
+        midis.forEach((midi) => this.schedule(midi, start, midis.length, {
+          velocity: NOTE_PLAYBACK.velocityMinimum + Math.random() * NOTE_PLAYBACK.velocityVariation,
+          detune: (Math.random() - RANDOM_MIDPOINT) * NOTE_PLAYBACK.detuneRangeCents,
+        }))
       }
       this.onStatus('Acoustic guitar ready')
     } catch (error) {
@@ -163,13 +168,13 @@ export class GuitarAudio {
       const gain = this.context!.createGain()
       const start = this.context!.currentTime
       oscillator.type = 'triangle'
-      oscillator.frequency.setValueAtTime(accent ? 1280 : 860, start)
-      gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.exponentialRampToValueAtTime(accent ? 0.18 : 0.1, start + 0.003)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.055)
+      oscillator.frequency.setValueAtTime(accent ? METRONOME.accentFrequencyHz : METRONOME.beatFrequencyHz, start)
+      gain.gain.setValueAtTime(METRONOME.nearSilentGain, start)
+      gain.gain.exponentialRampToValueAtTime(accent ? METRONOME.accentGain : METRONOME.beatGain, start + METRONOME.attackSeconds)
+      gain.gain.exponentialRampToValueAtTime(METRONOME.nearSilentGain, start + METRONOME.decaySeconds)
       oscillator.connect(gain).connect(this.output!)
       oscillator.start(start)
-      oscillator.stop(start + 0.06)
+      oscillator.stop(start + METRONOME.durationSeconds)
     } catch (error) {
       console.warn('Metronome playback:', error)
     }
@@ -178,29 +183,33 @@ export class GuitarAudio {
   private scheduleStrum(midis: number[], direction: 'down' | 'up', accent = false): void {
     const chord = [...midis].sort((a, b) => a - b)
     // A returning pick usually brushes the treble strings; the bass keeps ringing.
-    const orderedNotes = direction === 'down' ? chord : chord.slice(-4).reverse()
-    const start = this.context!.currentTime + 0.012
-    const baseGap = direction === 'down' ? 0.011 : 0.008
-    const strokeVelocity = (direction === 'down' ? 1 : 0.76) * (accent ? 1.12 : 1) * (0.96 + Math.random() * 0.08)
+    const orderedNotes = direction === 'down' ? chord : chord.slice(-STRUM_PLAYBACK.upstrokeStringCount).reverse()
+    const start = this.context!.currentTime + STRUM_PLAYBACK.startDelaySeconds
+    const baseGap = direction === 'down' ? STRUM_PLAYBACK.downstrokeGapSeconds : STRUM_PLAYBACK.upstrokeGapSeconds
+    const directionVelocity = direction === 'down' ? STRUM_PLAYBACK.downstrokeVelocity : STRUM_PLAYBACK.upstrokeVelocity
+    const strokeVelocity = directionVelocity * (accent ? STRUM_PLAYBACK.accentMultiplier : 1)
+      * (STRUM_PLAYBACK.velocityMinimum + Math.random() * STRUM_PLAYBACK.velocityVariation)
     let offset = 0
 
     // Release notes no longer held by the fretting hand before the new chord.
     this.voices.forEach((voice) => {
-      if (voice.strummed && !voice.releasing && !chord.includes(voice.midi)) this.releaseVoice(voice, start, 0.18)
+      if (voice.strummed && !voice.releasing && !chord.includes(voice.midi)) this.releaseVoice(voice, start, STRUM_PLAYBACK.chordChangeReleaseSeconds)
     })
 
     orderedNotes.forEach((midi, index) => {
-      if (index > 0) offset += baseGap * (0.85 + Math.random() * 0.3)
+      if (index > 0) offset += baseGap * (STRUM_PLAYBACK.gapMinimumMultiplier + Math.random() * STRUM_PLAYBACK.gapVariation)
       const position = orderedNotes.length > 1 ? index / (orderedNotes.length - 1) : 0
       const when = start + offset
       this.voices.forEach((voice) => {
         // Preserve the ringing tail beneath the next pick attack.
-        if (voice.strummed && !voice.releasing && voice.midi === midi) this.releaseVoice(voice, when, 0.65)
+        if (voice.strummed && !voice.releasing && voice.midi === midi) this.releaseVoice(voice, when, STRUM_PLAYBACK.repeatedStringReleaseSeconds)
       })
       this.schedule(midi, when, chord.length, {
-        velocity: strokeVelocity * (1.05 - position * 0.12) * (0.97 + Math.random() * 0.06),
-        detune: (Math.random() - 0.5) * 3,
-        brightness: 5400 + strokeVelocity * 2200 - position * 500,
+        velocity: strokeVelocity * (STRUM_PLAYBACK.leadingStringVelocity - position * STRUM_PLAYBACK.trailingStringVelocityReduction)
+          * (STRUM_PLAYBACK.stringVelocityMinimum + Math.random() * STRUM_PLAYBACK.stringVelocityVariation),
+        detune: (Math.random() - RANDOM_MIDPOINT) * STRUM_PLAYBACK.detuneRangeCents,
+        brightness: STRUM_PLAYBACK.baseBrightnessHz + strokeVelocity * STRUM_PLAYBACK.velocityBrightnessHz
+          - position * STRUM_PLAYBACK.trailingStringBrightnessReductionHz,
         strummed: true,
       })
     })
@@ -212,21 +221,21 @@ export class GuitarAudio {
     const gain = this.context!.createGain()
     const tone = this.context!.createBiquadFilter()
     source.buffer = this.buffers.get(sampleMidi)!
-    source.playbackRate.value = 2 ** ((midi - sampleMidi) / 12)
+    source.playbackRate.value = OCTAVE_FREQUENCY_RATIO ** ((midi - sampleMidi) / SEMITONES_PER_OCTAVE)
     source.detune.value = options.detune ?? 0
     tone.type = 'lowpass'
-    const brightness = options.brightness ?? 7400
+    const brightness = options.brightness ?? NOTE_PLAYBACK.brightnessHz
     tone.frequency.setValueAtTime(brightness, when)
     // Keep the recorded pick attack, then let the bright overtones soften.
-    tone.frequency.exponentialRampToValueAtTime(brightness * 0.78, when + 1.4)
-    tone.Q.value = 0.28
+    tone.frequency.exponentialRampToValueAtTime(brightness * NOTE_PLAYBACK.sustainedBrightnessRatio, when + NOTE_PLAYBACK.brightnessDecaySeconds)
+    tone.Q.value = NOTE_PLAYBACK.lowpassQ
     // The recording already contains the guitar's natural decay; do not truncate it.
     const duration = source.buffer.duration / source.playbackRate.value
-    const volume = ((0.7 + Math.random() * 0.045) * (options.velocity ?? 1)) / Math.sqrt(Math.max(1, chordSize))
+    const volume = ((NOTE_PLAYBACK.gainMinimum + Math.random() * NOTE_PLAYBACK.gainVariation) * (options.velocity ?? 1)) / Math.sqrt(Math.max(1, chordSize))
 
     gain.gain.setValueAtTime(0, when)
-    gain.gain.linearRampToValueAtTime(volume, when + 0.003 + Math.random() * 0.002)
-    gain.gain.setValueAtTime(volume, when + Math.max(0.006, duration - 0.22))
+    gain.gain.linearRampToValueAtTime(volume, when + NOTE_PLAYBACK.attackSeconds + Math.random() * NOTE_PLAYBACK.attackVariationSeconds)
+    gain.gain.setValueAtTime(volume, when + Math.max(NOTE_PLAYBACK.minimumHoldSeconds, duration - NOTE_PLAYBACK.endFadeSeconds))
     gain.gain.linearRampToValueAtTime(0, when + duration)
     source.connect(tone).connect(gain).connect(this.master!)
 
@@ -239,25 +248,26 @@ export class GuitarAudio {
       this.voices.delete(voice)
     }
     source.start(when)
-    source.stop(when + duration + 0.01)
+    source.stop(when + duration + NOTE_PLAYBACK.endStopPaddingSeconds)
   }
 
-  private releaseVoice(voice: Voice, when: number, releaseSeconds = 0.025): void {
+  private releaseVoice(voice: Voice, when: number, releaseSeconds: number = NOTE_PLAYBACK.stopReleaseSeconds): void {
     voice.gain.gain.cancelAndHoldAtTime(when)
     voice.gain.gain.linearRampToValueAtTime(0, when + releaseSeconds)
-    voice.source.stop(when + releaseSeconds + 0.005)
+    voice.source.stop(when + releaseSeconds + NOTE_PLAYBACK.releaseStopPaddingSeconds)
     // Keep fading voices tracked until onended so Stop can silence their tails too.
     voice.releasing = true
   }
 
   private createRoomImpulse(seconds: number, decay: number): AudioBuffer {
     const frameCount = Math.floor(this.context!.sampleRate * seconds)
-    const impulse = this.context!.createBuffer(2, frameCount, this.context!.sampleRate)
+    const impulse = this.context!.createBuffer(ROOM_REVERB.channels, frameCount, this.context!.sampleRate)
     for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
       const data = impulse.getChannelData(channel)
       for (let frame = 0; frame < frameCount; frame += 1) {
         const envelope = (1 - frame / frameCount) ** decay
-        data[frame] = (Math.random() * 2 - 1) * envelope
+        const noise = (Math.random() - RANDOM_MIDPOINT) / RANDOM_MIDPOINT
+        data[frame] = noise * envelope
       }
     }
     return impulse

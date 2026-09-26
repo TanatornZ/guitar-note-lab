@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, type GuitarTone } from '../data/guitarTone'
+import { DEFAULT_GUITAR_TONE, GUITAR_TONE_BANDS, TONE_LIMIT, TONE_STEP_DB, type GuitarTone } from '../data/guitarTone'
 
 export function GuitarToneControls({ onChange }: { onChange: (tone: GuitarTone) => void }) {
   const [tone, setTone] = useState<GuitarTone>({ ...DEFAULT_GUITAR_TONE })
@@ -18,7 +18,7 @@ export function GuitarToneControls({ onChange }: { onChange: (tone: GuitarTone) 
           <label htmlFor={`${id}-${key}`} className="text-sm font-semibold text-[#d8e0f4]">{label}</label>
           <span className="font-mono text-xs text-[#f2ae49]">{tone[key] > 0 ? '+' : ''}{tone[key]} dB</span>
         </div>
-        <input id={`${id}-${key}`} type="range" min={-TONE_LIMIT} max={TONE_LIMIT} step={1} value={tone[key]} aria-valuetext={`${tone[key]} decibels`} aria-describedby={`${id}-${key}-hint`} onChange={(event) => updateTone({ ...tone, [key]: Number(event.target.value) })} className="mt-2 w-full cursor-pointer accent-[#f2ae49]" />
+        <input id={`${id}-${key}`} type="range" min={-TONE_LIMIT} max={TONE_LIMIT} step={TONE_STEP_DB} value={tone[key]} aria-valuetext={`${tone[key]} decibels`} aria-describedby={`${id}-${key}-hint`} onChange={(event) => updateTone({ ...tone, [key]: Number(event.target.value) })} className="mt-2 w-full cursor-pointer accent-[#f2ae49]" />
         <p id={`${id}-${key}-hint`} className="text-xs text-[#aeb9d2]">{description}</p>
       </div>)}
     </div>

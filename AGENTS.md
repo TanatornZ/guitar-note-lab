@@ -28,6 +28,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 - `src/App.tsx` composes the application screen.
 - `src/pages/` contains hash-routed screens, including the chord finder and Strum Studio.
 - `src/components/` contains presentational UI components.
+- `src/constants/` contains named music, audio, and studio configuration values. Include units in names where relevant (seconds, Hz, dB, BPM, MIDI).
 - `src/data/music.ts` contains note names, standard tuning, and chord shapes.
 - `src/data/strumChords.ts` contains playable guitar voicings for the Strum Studio chord palette.
 - `src/lib/chords.ts` derives compatible chord names from selected pitch classes.
@@ -38,6 +39,7 @@ Before handing off a change, run `npm run check`, `npm test`, `npm run coverage`
 
 ## UI and state conventions
 
+- Use meaningful constants for behavior-controlling numbers instead of unexplained numeric literals. Keep constants grouped by purpose; equal numbers with different meanings must not share a constant. Ordinary loop counters, musical data (chord intervals and MIDI voicings), and Tailwind classes can remain literal.
 - Use Tailwind utility classes for UI styling. Keep `src/styles.css` limited to Tailwind setup, theme tokens, and external font imports.
 - Use MUI `Autocomplete` for the Strum Studio chord picker; keep its `sx` styling aligned with the existing dark theme.
 - Preserve the existing dark Chord Canvas design: layered navy background, amber highlights, wood fretboard, and responsive two-column layout from 900px up.

@@ -5,25 +5,25 @@ import { STRUM_CHORDS, type StrumChord } from '../data/strumChords'
 import { ANGER_PRESET, defaultPattern, type ProgressionChord, type Subdivision } from '../data/strumPresets'
 import { StrumPatternEditor } from '../components/StrumPatternEditor'
 import { GuitarToneControls } from '../components/GuitarToneControls'
+import {
+  CHORD_DURATION_BEATS, DEFAULT_PROGRESSION_CHORD_IDS, DEFAULT_SUBDIVISION,
+  DEFAULT_TIME_SIGNATURE, MILLISECONDS_PER_MINUTE, NO_ACTIVE_STEP,
+  SUBDIVISIONS, TEMPO_BPM, TIME_SIGNATURES,
+} from '../constants/studio'
 
-const TIME_SIGNATURES = [
-  { label: '2/4', beats: 2 },
-  { label: '3/4', beats: 3 },
-  { label: '4/4', beats: 4 },
-  { label: '6/8', beats: 6 },
-]
+const DEFAULT_PROGRESSION = DEFAULT_PROGRESSION_CHORD_IDS.map((id) => STRUM_CHORDS.find((chord) => chord.id === id)!)
 
 export function StrumStudioPage() {
-  const [progression, setProgression] = useState<ProgressionChord[]>([STRUM_CHORDS[0], STRUM_CHORDS[1], STRUM_CHORDS[2], STRUM_CHORDS[3]])
+  const [progression, setProgression] = useState<ProgressionChord[]>(DEFAULT_PROGRESSION)
   const [selectedChord, setSelectedChord] = useState<StrumChord | null>(STRUM_CHORDS[0])
-  const [signature, setSignature] = useState(TIME_SIGNATURES[2])
-  const [bpm, setBpm] = useState(96)
-  const [pattern, setPattern] = useState(defaultPattern(TIME_SIGNATURES[2].beats, 1))
-  const [subdivisions, setSubdivisions] = useState<Subdivision>(1)
+  const [signature, setSignature] = useState<typeof TIME_SIGNATURES[number]>(DEFAULT_TIME_SIGNATURE)
+  const [bpm, setBpm] = useState<number>(TEMPO_BPM.default)
+  const [pattern, setPattern] = useState(defaultPattern(DEFAULT_TIME_SIGNATURE.beats, DEFAULT_SUBDIVISION))
+  const [subdivisions, setSubdivisions] = useState<Subdivision>(DEFAULT_SUBDIVISION)
   const [metronomeEnabled, setMetronomeEnabled] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [activeBeat, setActiveBeat] = useState(-1)
-  const [activeChord, setActiveChord] = useState(-1)
+  const [activeBeat, setActiveBeat] = useState(NO_ACTIVE_STEP)
+  const [activeChord, setActiveChord] = useState(NO_ACTIVE_STEP)
   const [audioStatus, setAudioStatus] = useState('Choose a progression, then press Play to load the acoustic guitar.')
   const audio = useRef<GuitarAudio | null>(null)
   const beatRef = useRef(0)
@@ -60,7 +60,7 @@ export function StrumStudioPage() {
   useEffect(() => {
     if (!isPlaying) { startedRef.current = false; return }
     if (!startedRef.current) { tick(); startedRef.current = true }
-    const timer = window.setInterval(tick, 60000 / bpm / subdivisions)
+    const timer = window.setInterval(tick, MILLISECONDS_PER_MINUTE / bpm / subdivisions)
     return () => window.clearInterval(timer)
   }, [bpm, subdivisions, isPlaying, tick])
 
@@ -68,8 +68,8 @@ export function StrumStudioPage() {
     if (!progression.length && isPlaying) {
       audio.current?.stop()
       setIsPlaying(false)
-      setActiveBeat(-1)
-      setActiveChord(-1)
+      setActiveBeat(NO_ACTIVE_STEP)
+      setActiveChord(NO_ACTIVE_STEP)
     }
   }, [isPlaying, progression.length])
 
@@ -94,18 +94,18 @@ export function StrumStudioPage() {
     playRequestRef.current += 1
     audio.current?.stop()
     setIsPlaying(false)
-    setActiveBeat(-1)
-    setActiveChord(-1)
+    setActiveBeat(NO_ACTIVE_STEP)
+    setActiveChord(NO_ACTIVE_STEP)
     setAudioStatus('Stopped. Adjust your groove and press Play when ready.')
   }
 
   const updateSignature = (label: string) => {
     stopPlayback()
-    const selected = TIME_SIGNATURES.find((option) => option.label === label) ?? TIME_SIGNATURES[2]
+    const selected = TIME_SIGNATURES.find((option) => option.label === label) ?? DEFAULT_TIME_SIGNATURE
     setSignature(selected)
     setPattern(defaultPattern(selected.beats, subdivisions))
     beatRef.current = 0
-    setActiveBeat(-1)
+    setActiveBeat(NO_ACTIVE_STEP)
   }
 
   const updateSubdivisions = (value: Subdivision) => {
@@ -113,7 +113,7 @@ export function StrumStudioPage() {
     setSubdivisions(value)
     setPattern(defaultPattern(signature.beats, value))
     beatRef.current = 0
-    setActiveBeat(-1)
+    setActiveBeat(NO_ACTIVE_STEP)
   }
 
   const updateProgression = (items: ProgressionChord[]) => {
@@ -126,7 +126,7 @@ export function StrumStudioPage() {
     setProgression(ANGER_PRESET.progression.map((chord) => ({ ...chord })))
     setPattern(ANGER_PRESET.pattern.map((step) => ({ ...step })))
     setBpm(ANGER_PRESET.bpm)
-    setSignature(TIME_SIGNATURES[2])
+    setSignature(ANGER_PRESET.timeSignature)
     setSubdivisions(ANGER_PRESET.subdivisions)
     setMetronomeEnabled(false)
     setAudioStatus('Practice loop loaded. Press Play performance to hear it.')
@@ -148,7 +148,7 @@ export function StrumStudioPage() {
         <div>
           <div className="font-mono text-xs uppercase tracking-wider text-[#77e4bf]">Song-inspired practice</div>
           <h2 className="mt-1 text-lg font-bold text-[#f2ae49]">{ANGER_PRESET.name}</h2>
-          <p className="mt-1 text-sm text-[#d8e0f4]">82 BPM · 4/4 · C major · flowing sixteenth-note strums</p>
+          <p className="mt-1 text-sm text-[#d8e0f4]">{ANGER_PRESET.bpm} BPM · {ANGER_PRESET.timeSignature.label} · C major · flowing sixteenth-note strums</p>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#aeb9d2]">A simplified acoustic loop with ringing chords and accented strokes. Load it to replace the current sequence and rhythm, then adjust the groove to your taste.</p>
         </div>
         <button onClick={loadPreset} className="shrink-0 cursor-pointer rounded-xl border border-[#d89233] bg-[#f2ae49] px-4 py-3 font-bold text-[#1b2030] hover:brightness-105">Load practice preset</button>
@@ -185,30 +185,30 @@ export function StrumStudioPage() {
               {progression.length ? <div className="flex flex-wrap gap-2">{progression.map((chord, index) => <div aria-current={activeChord === index ? 'true' : undefined} className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${activeChord === index ? 'border-[#f2ae49] bg-[#f2ae4922]' : 'border-[#435377] bg-[#18233e]'}`} key={`${chord.id}-${index}`}>
                 <span className="font-mono text-xs text-[#77e4bf]">{index + 1}</span><span className="font-mono font-bold text-[#f2ae49]">{chord.name}</span>
                 <select aria-label={`Duration of chord ${index + 1}, ${chord.name}`} value={chord.beats ?? 'bar'} onChange={(event) => updateProgression(progression.map((item, i) => i === index ? { ...item, beats: event.target.value === 'bar' ? undefined : Number(event.target.value) } : item))} className="rounded border border-[#435377] bg-[#0e172a] p-1 text-xs text-[#d8e0f4]">
-                  <option value="bar">1 bar</option>{[1, 2, 3, 4, 6, 8].map((beats) => <option key={beats} value={beats}>{beats} {beats === 1 ? 'beat' : 'beats'}</option>)}
+                  <option value="bar">1 bar</option>{CHORD_DURATION_BEATS.map((beats) => <option key={beats} value={beats}>{beats} {beats === 1 ? 'beat' : 'beats'}</option>)}
                 </select>
                 <button className="cursor-pointer text-[#aeb9d2] hover:text-white" aria-label={`Remove ${chord.name}`} onClick={() => updateProgression(progression.filter((_, itemIndex) => itemIndex !== index))}>×</button>
               </div>)}</div> : <div className="grid h-[66px] place-items-center text-sm text-[#aeb9d2]">Choose chords above to create your loop.</div>}
             </div>
           </section>
 
-          <StrumPatternEditor pattern={pattern} subdivisions={subdivisions} activeStep={isPlaying ? activeBeat : -1} onChange={setPattern} />
+          <StrumPatternEditor pattern={pattern} subdivisions={subdivisions} activeStep={isPlaying ? activeBeat : NO_ACTIVE_STEP} onChange={setPattern} />
         </div>
 
         <aside className="h-fit rounded-[22px] border border-[#314267] bg-[linear-gradient(145deg,#18233eeb,#111a2eee)] p-5 shadow-[0_24px_50px_#02050f55] sm:p-6">
           <div className="font-mono text-xs font-medium tracking-[.11em] text-[#f2ae49] uppercase">2 · Metronome</div><h2 className="mt-2 text-lg font-bold">Set the groove</h2>
           <label className="mt-5 block text-sm font-semibold text-[#d8e0f4]" htmlFor="tempo">Tempo <span className="float-right font-mono text-[#f2ae49]">{bpm} BPM</span></label>
-          <input id="tempo" className="mt-3 w-full accent-[#f2ae49]" type="range" min="50" max="220" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} />
-          <div className="mt-2 flex justify-between font-mono text-xs text-[#8d9abb]"><span>50</span><span>220</span></div>
+          <input id="tempo" className="mt-3 w-full accent-[#f2ae49]" type="range" min={TEMPO_BPM.minimum} max={TEMPO_BPM.maximum} value={bpm} onChange={(event) => setBpm(Number(event.target.value))} />
+          <div className="mt-2 flex justify-between font-mono text-xs text-[#8d9abb]"><span>{TEMPO_BPM.minimum}</span><span>{TEMPO_BPM.maximum}</span></div>
           <label className="mt-6 block text-sm font-semibold text-[#d8e0f4]" htmlFor="signature">Time signature</label>
           <select id="signature" value={signature.label} onChange={(event) => updateSignature(event.target.value)} className="mt-2 w-full cursor-pointer rounded-xl border border-[#435377] bg-[#0e172a] px-3 py-3 text-sm text-[#eff3ff] outline-none focus:border-[#f2ae49]">{TIME_SIGNATURES.map((option) => <option key={option.label}>{option.label}</option>)}</select>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition ${metronomeEnabled ? 'border-[#77e4bf] bg-[#77e4bf18] text-[#77e4bf]' : 'border-[#435377] bg-[#0e172a] text-[#aeb9d2]'}`} onClick={() => setMetronomeEnabled((enabled) => !enabled)}>{metronomeEnabled ? '● Metronome on' : '○ Metronome off'}</button>
-            <button className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition ${subdivisions === 2 ? 'border-[#f2ae49] bg-[#f2ae4918] text-[#f2ae49]' : 'border-[#435377] bg-[#0e172a] text-[#aeb9d2]'}`} onClick={() => updateSubdivisions(subdivisions === 2 ? 1 : 2)}>{subdivisions === 2 ? '½ Half-beats on' : '½ Add half-beats'}</button>
+            <button className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition ${subdivisions === SUBDIVISIONS.eighth ? 'border-[#f2ae49] bg-[#f2ae4918] text-[#f2ae49]' : 'border-[#435377] bg-[#0e172a] text-[#aeb9d2]'}`} onClick={() => updateSubdivisions(subdivisions === SUBDIVISIONS.eighth ? SUBDIVISIONS.quarter : SUBDIVISIONS.eighth)}>{subdivisions === SUBDIVISIONS.eighth ? '½ Half-beats on' : '½ Add half-beats'}</button>
           </div>
           <label htmlFor="rhythm-grid" className="mt-4 block text-sm font-semibold text-[#d8e0f4]">Rhythm grid</label>
           <select id="rhythm-grid" value={subdivisions} onChange={(event) => updateSubdivisions(Number(event.target.value) as Subdivision)} className="mt-2 w-full rounded-xl border border-[#435377] bg-[#0e172a] px-3 py-3 text-sm text-[#eff3ff]">
-            <option value={1}>Quarter notes · 1 2 3 4</option><option value={2}>Eighth notes · 1 & 2 &</option><option value={4}>Sixteenth notes · 1 e & a</option>
+            <option value={SUBDIVISIONS.quarter}>Quarter notes · 1 2 3 4</option><option value={SUBDIVISIONS.eighth}>Eighth notes · 1 & 2 &</option><option value={SUBDIVISIONS.sixteenth}>Sixteenth notes · 1 e & a</option>
           </select>
           <p className="mt-2 text-xs leading-relaxed text-[#aeb9d2]">Metronome clicks stay on numbered beats. Accent buttons control the guitar emphasis. Changing the grid resets the pattern.</p>
           <GuitarToneControls onChange={(tone) => audio.current?.setTone(tone)} />

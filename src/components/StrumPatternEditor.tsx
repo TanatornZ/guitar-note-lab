@@ -1,4 +1,5 @@
 import { stepLabel, type StrumDirection, type StrumStep, type Subdivision } from '../data/strumPresets'
+import { MAX_PATTERN_COLUMNS } from '../constants/studio'
 
 const directionLabel: Record<StrumDirection, string> = { down: '↓ Down', up: '↑ Up', rest: '— Ring' }
 const nextDirection: Record<StrumDirection, StrumDirection> = { down: 'up', up: 'rest', rest: 'down' }
@@ -15,7 +16,7 @@ export function StrumPatternEditor({ pattern, subdivisions, activeStep, onChange
     <div className="font-mono text-xs font-medium tracking-[.11em] text-[#f2ae49] uppercase">3 · Strum pattern</div>
     <h2 className="mt-2 text-lg font-bold">Choose the direction on each beat</h2>
     <p className="mt-2 text-sm text-[#aeb9d2]">Click a step for down, up, or ring. Ring lets the previous stroke sustain. Add accents for stronger strokes.</p>
-    <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(pattern.length, 4)}, minmax(0, 1fr))` }}>
+    <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(pattern.length, MAX_PATTERN_COLUMNS)}, minmax(0, 1fr))` }}>
       {pattern.map((step, index) => <div key={index} className={`overflow-hidden rounded-[13px] border ${activeStep === index ? 'border-[#f2ae49] bg-[#f2ae4922]' : 'border-[#435377] bg-[#0e172a]'}`}>
         <button aria-current={activeStep === index ? 'step' : undefined} onClick={() => onChange(pattern.map((item, i) => i === index ? { ...item, direction: nextDirection[item.direction] } : item))} className="min-h-[84px] w-full cursor-pointer p-3 text-center hover:bg-[#f2ae4910]">
           <span className="block font-mono text-xs text-[#77e4bf]">{stepLabel(index, subdivisions)}</span>

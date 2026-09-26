@@ -1,4 +1,5 @@
 import type { ChordShape, GuitarString, PitchClass } from '../types/music'
+import { PITCH_NAME_WRAP_OFFSET } from '../constants/music'
 
 export const NOTES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'] as const
 
@@ -30,4 +31,4 @@ export const CHORD_SHAPES: ChordShape[] = [
   { suffix: '9', type: 'dominant ninth', intervals: [0, 2, 4, 7, 10] },
 ]
 
-export const noteName = (pitch: PitchClass): string => NOTES[(pitch + 120) % NOTES.length]
+export const noteName = (pitch: PitchClass): string => NOTES[(pitch + PITCH_NAME_WRAP_OFFSET) % NOTES.length]

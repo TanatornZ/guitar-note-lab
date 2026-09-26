@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useRef, useState, type ReactNode } 
 import { GuitarAudio } from "../audio/GuitarAudio";
 import { findChordMatches } from "../lib/chords";
 import type { ChordMatch, PitchClass } from "../types/music";
+import { CHORD_PREVIEW_BASE_MIDI } from "../constants/music";
 
 interface ChordContextValue {
   selectedNotes: PitchClass[];
@@ -35,7 +36,7 @@ export function ChordProvider({ children }: { children: ReactNode }) {
     setSelectedNotes([]);
   };
   const playSelectedChord = () => {
-    const midis = selectedNotes.slice().sort((a, b) => a - b).map((pitch) => 48 + pitch);
+    const midis = selectedNotes.slice().sort((a, b) => a - b).map((pitch) => CHORD_PREVIEW_BASE_MIDI + pitch);
     void audio.current?.play(midis, true);
   };
 

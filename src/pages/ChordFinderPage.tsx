@@ -7,6 +7,7 @@ import { NotePicker } from '../components/NotePicker'
 import { GuitarToneControls } from '../components/GuitarToneControls'
 import { findChordMatches } from '../lib/chords'
 import type { PitchClass } from '../types/music'
+import { CHORD_PREVIEW_BASE_MIDI } from '../constants/music'
 
 export function ChordFinderPage() {
   const [selectedNotes, setSelectedNotes] = useState<PitchClass[]>([])
@@ -21,7 +22,7 @@ export function ChordFinderPage() {
     if (midi !== undefined) void audio.current?.play([midi])
   }
   const clearSelection = () => { audio.current?.stop(); setSelectedNotes([]) }
-  const playSelectedChord = () => void audio.current?.play(selectedNotes.slice().sort((a, b) => a - b).map((pitch) => 48 + pitch), true)
+  const playSelectedChord = () => void audio.current?.play(selectedNotes.slice().sort((a, b) => a - b).map((pitch) => CHORD_PREVIEW_BASE_MIDI + pitch), true)
 
   return <main className="min-h-screen bg-[#0b1020] bg-[image:radial-gradient(circle_at_14%_0%,#203560_0,transparent_30rem),radial-gradient(circle_at_90%_90%,#17284e_0,transparent_34rem)] px-[clamp(18px,4vw,56px)] pt-7 pb-12 font-sans text-[#eff3ff]">
     <div className="mx-auto max-w-[1320px]">
