@@ -3,13 +3,14 @@ import { Autocomplete, TextField } from "@mui/material";
 import { GuitarAudio } from "../audio/GuitarAudio";
 import { STRUM_CHORDS, type StrumChord } from "../data/strumChords";
 import {
-  ANGER_PRESET,
   defaultPattern,
   type ProgressionChord,
+  type SongPreset,
   type Subdivision,
 } from "../data/strumPresets";
 import { StrumPatternEditor } from "../components/StrumPatternEditor";
 import { GuitarToneControls } from "../components/GuitarToneControls";
+import { SongTemplateLibrary } from "../components/SongTemplateLibrary";
 import { SiteNavbar } from "../components/SiteNavbar";
 import { useI18n, type TranslationKey } from "../i18n";
 import {
@@ -45,6 +46,7 @@ export function StrumStudioPage() {
   const [subdivisions, setSubdivisions] =
     useState<Subdivision>(DEFAULT_SUBDIVISION);
   const [metronomeEnabled, setMetronomeEnabled] = useState(true);
+  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeBeat, setActiveBeat] = useState(NO_ACTIVE_STEP);
   const [activeChord, setActiveChord] = useState(NO_ACTIVE_STEP);
@@ -147,6 +149,7 @@ export function StrumStudioPage() {
 
   const updateSignature = (label: string) => {
     stopPlayback();
+    setLoadedPresetId(null);
     const selected =
       TIME_SIGNATURES.find((option) => option.label === label) ??
       DEFAULT_TIME_SIGNATURE;
@@ -158,6 +161,7 @@ export function StrumStudioPage() {
 
   const updateSubdivisions = (value: Subdivision) => {
     stopPlayback();
+    setLoadedPresetId(null);
     setSubdivisions(value);
     setPattern(defaultPattern(signature.beats, value));
     beatRef.current = 0;
@@ -166,17 +170,19 @@ export function StrumStudioPage() {
 
   const updateProgression = (items: ProgressionChord[]) => {
     stopPlayback();
+    setLoadedPresetId(null);
     setProgression(items);
   };
 
-  const loadPreset = () => {
+  const loadPreset = (preset: SongPreset) => {
     stopPlayback();
-    setProgression(ANGER_PRESET.progression.map((chord) => ({ ...chord })));
-    setPattern(ANGER_PRESET.pattern.map((step) => ({ ...step })));
-    setBpm(ANGER_PRESET.bpm);
-    setSignature(ANGER_PRESET.timeSignature);
-    setSubdivisions(ANGER_PRESET.subdivisions);
+    setProgression(preset.progression.map((chord) => ({ ...chord })));
+    setPattern(preset.pattern.map((step) => ({ ...step })));
+    setBpm(preset.bpm);
+    setSignature(preset.timeSignature);
+    setSubdivisions(preset.subdivisions);
     setMetronomeEnabled(false);
+    setLoadedPresetId(preset.id);
     setAudioStatus("audio.presetLoaded");
   };
 
@@ -202,34 +208,10 @@ export function StrumStudioPage() {
           </p>
         </section>
 
-        <section
-          aria-label="Song practice preset"
-          className="mb-[18px] flex flex-col gap-4 rounded-[22px] border border-[#916a31] bg-[#251f19] p-5 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div>
-            <div className="font-mono text-xs uppercase tracking-wider text-[#77e4bf]">
-              {t("studio.presetLabel")}
-            </div>
-            <h2 className="mt-1 text-lg font-bold text-[#f2ae49]">
-              {ANGER_PRESET.name}
-            </h2>
-            <p className="mt-1 text-sm text-[#d8e0f4]">
-              {t("studio.presetSummary", {
-                bpm: ANGER_PRESET.bpm,
-                signature: ANGER_PRESET.timeSignature.label,
-              })}
-            </p>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[#aeb9d2]">
-              {t("studio.presetDescription")}
-            </p>
-          </div>
-          <button
-            onClick={loadPreset}
-            className="shrink-0 cursor-pointer rounded-xl border border-[#d89233] bg-[#f2ae49] px-4 py-3 font-bold text-[#1b2030] hover:brightness-105"
-          >
-            {t("studio.loadPreset")}
-          </button>
-        </section>
+        <SongTemplateLibrary
+          loadedPresetId={loadedPresetId}
+          onLoad={loadPreset}
+        />
 
         <section className="grid gap-[18px] min-[980px]:grid-cols-[minmax(0,1.25fr)_minmax(360px,.75fr)]">
           <div className="space-y-[18px]">
@@ -394,7 +376,10 @@ export function StrumStudioPage() {
               pattern={pattern}
               subdivisions={subdivisions}
               activeStep={isPlaying ? activeBeat : NO_ACTIVE_STEP}
-              onChange={setPattern}
+              onChange={(nextPattern) => {
+                setLoadedPresetId(null);
+                setPattern(nextPattern);
+              }}
             />
           </div>
 
@@ -419,7 +404,10 @@ export function StrumStudioPage() {
               min={TEMPO_BPM.minimum}
               max={TEMPO_BPM.maximum}
               value={bpm}
-              onChange={(event) => setBpm(Number(event.target.value))}
+              onChange={(event) => {
+                setLoadedPresetId(null);
+                setBpm(Number(event.target.value));
+              }}
             />
             <div className="mt-2 flex justify-between font-mono text-xs text-[#8d9abb]">
               <span>{TEMPO_BPM.minimum}</span>

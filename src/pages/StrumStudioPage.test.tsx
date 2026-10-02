@@ -18,6 +18,9 @@ import { StrumStudioPage } from './StrumStudioPage'
 import { STRUM_CHORDS } from '../data/strumChords'
 
 const midis = (id: string) => STRUM_CHORDS.find((chord) => chord.id === id)!.midis
+const loadAngerTemplate = () => fireEvent.click(
+  screen.getByRole('button', { name: "Load Don't Look Back in Anger template" }),
+)
 
 describe('StrumStudioPage', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -61,6 +64,48 @@ describe('StrumStudioPage', () => {
     expect(screen.getByRole('button', { name: /Beat 1.*Up/ })).toBeInTheDocument()
   })
 
+  it('searches and filters the 20-song template library', () => {
+    render(<StrumStudioPage />)
+
+    expect(screen.getByText('20 templates')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Load .* template$/ })).toHaveLength(20)
+
+    fireEvent.click(screen.getByRole('button', { name: /Hide templates/ }))
+    expect(screen.queryByRole('searchbox', { name: 'Find a template' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Load .* template$/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Show templates/ })).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(screen.getByRole('button', { name: /Show templates/ }))
+    expect(screen.getByRole('button', { name: /Hide templates/ })).toHaveAttribute('aria-expanded', 'true')
+
+    const search = screen.getByRole('searchbox', { name: 'Find a template' })
+    fireEvent.change(search, { target: { value: 'Adele' } })
+    expect(screen.getByRole('heading', { name: 'Someone Like You' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Wonderwall' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 found')).toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Rock' }))
+    expect(screen.getByRole('heading', { name: 'Zombie' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Let It Be' })).not.toBeInTheDocument()
+
+    fireEvent.change(search, { target: { value: 'not a song' } })
+    expect(screen.getByText('No templates match that search.')).toBeInTheDocument()
+    expect(screen.getByText('0 found')).toBeInTheDocument()
+  })
+
+  it('loads a different template with its meter, tempo, groove, and chords', () => {
+    render(<StrumStudioPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'Load Perfect template' }))
+
+    expect(screen.getByLabelText(/^Tempo/)).toHaveValue('95')
+    expect(screen.getByLabelText('Time signature')).toHaveValue('6/8')
+    expect(screen.getByLabelText('Rhythm grid')).toHaveValue('2')
+    expect(screen.getAllByRole('button', { name: /^Accent step/ })).toHaveLength(12)
+    expect(screen.getByRole('button', { name: 'Load Perfect template' })).toHaveTextContent('Loaded')
+    expect(screen.getByLabelText('Duration of chord 1, G')).toHaveValue('bar')
+    expect(audio.prepare).not.toHaveBeenCalled()
+  })
+
   it('prepares, plays a sequence, then stops it', async () => {
     render(<StrumStudioPage />)
     fireEvent.click(screen.getByRole('button', { name: /Play performance/ }))
@@ -102,8 +147,8 @@ describe('StrumStudioPage', () => {
 
   it('loads an editable practice preset without automatically playing', () => {
     render(<StrumStudioPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
-    expect(screen.getByText('82 BPM')).toBeInTheDocument()
+    loadAngerTemplate()
+    expect(screen.getByLabelText(/^Tempo/)).toHaveValue('82')
     expect(screen.getByLabelText('Time signature')).toHaveValue('4/4')
     expect(screen.getByLabelText('Rhythm grid')).toHaveValue('4')
     expect(screen.getAllByRole('button', { name: /^Accent step/ })).toHaveLength(16)
@@ -117,7 +162,7 @@ describe('StrumStudioPage', () => {
     expect(screen.getByRole('button', { name: 'Accent step 1' })).toHaveAttribute('aria-pressed', 'false')
     fireEvent.change(screen.getByLabelText('Duration of chord 1, C'), { target: { value: '4' } })
     expect(screen.getByLabelText('Duration of chord 1, C')).toHaveValue('4')
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
+    loadAngerTemplate()
     expect(screen.getByRole('button', { name: 'Accent step 1' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByLabelText('Duration of chord 1, C')).toHaveValue('2')
   })
@@ -125,7 +170,7 @@ describe('StrumStudioPage', () => {
   it('plays sixteenth-note rests, accents, mid-bar changes, and a complete looping progression', async () => {
     vi.useFakeTimers()
     const { unmount } = render(<StrumStudioPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
+    loadAngerTemplate()
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Play performance/ })) })
     expect(audio.playStrum).toHaveBeenLastCalledWith(midis('C'), 'down', true)
     const stepMs = 60000 / 82 / 4
@@ -151,7 +196,7 @@ describe('StrumStudioPage', () => {
   it('keeps metronome clicks on numbered beats and respects custom chord durations', async () => {
     vi.useFakeTimers()
     render(<StrumStudioPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
+    loadAngerTemplate()
     fireEvent.change(screen.getByLabelText('Duration of chord 1, C'), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: /Metronome off/ }))
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: /Play performance/ })) })
@@ -164,7 +209,7 @@ describe('StrumStudioPage', () => {
     expect(audio.playMetronome).toHaveBeenLastCalledWith(false)
     expect(audio.playStrum).toHaveBeenLastCalledWith(midis('G'), 'up', false)
     // Loading a preset stops an ongoing performance and resets the sequence.
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
+    loadAngerTemplate()
     expect(screen.getByRole('button', { name: /Play performance/ })).toBeInTheDocument()
     const count = audio.playStrum.mock.calls.length
     act(() => vi.advanceTimersByTime(5000))
@@ -176,7 +221,7 @@ describe('StrumStudioPage', () => {
     audio.prepare.mockReturnValueOnce(new Promise<boolean>((resolve) => { ready = resolve }))
     render(<StrumStudioPage />)
     fireEvent.click(screen.getByRole('button', { name: /Play performance/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Load practice preset' }))
+    loadAngerTemplate()
     await act(async () => ready(true))
     expect(audio.playStrum).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: /Play performance/ })).toBeInTheDocument()
